@@ -36,4 +36,7 @@ public class hoadon {
     private LocalDate ngaymh;
     @Column(name = "TrangThai")
     private boolean trangThai;
+    public hoadon(int i) {
+        this.id=id;
+    }
 }
