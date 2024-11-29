@@ -54,6 +54,9 @@ public class spchitiet {
 
     @Column(name = "TrangThai")
     private boolean trangThai;
+    public spchitiet(int i) {
+        this.id=id;
+    }
 
 
 }
