@@ -32,7 +32,7 @@ public class banhangcontroller {
     @Autowired
     private KhachHangRepository khachHangRepository;
     @ModelAttribute("listnv")
-    List<nhanvien> getall(){
+    List<NhanVien> getall(){
         return nhanVienRepository.findAll();
     }
     @ModelAttribute("listkh")

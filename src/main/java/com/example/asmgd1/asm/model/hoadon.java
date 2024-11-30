@@ -1,8 +1,6 @@
 package com.example.asmgd1.asm.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,7 +22,7 @@ public class hoadon {
 
     @ManyToOne
     @JoinColumn(name = "IdNhanVien", referencedColumnName = "id")
-    private nhanvien nhanVien;
+    private NhanVien nhanVien;
 
     @ManyToOne
     @JoinColumn(name = "IdKhachHang", referencedColumnName = "id")

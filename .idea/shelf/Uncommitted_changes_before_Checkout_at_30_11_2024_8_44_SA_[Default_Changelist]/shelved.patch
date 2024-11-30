@@ -1,0 +1,808 @@
+Index: src/main/java/com/example/asmgd1/asm/controller/banhangcontroller.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.asmgd1.asm.controller;\r\n\r\nimport com.example.asmgd1.asm.Repository.*;\r\nimport com.example.asmgd1.asm.model.*;\r\nimport org.springframework.beans.factory.annotation.Autowired;\r\nimport org.springframework.stereotype.Controller;\r\nimport org.springframework.ui.Model;\r\nimport org.springframework.web.bind.annotation.*;\r\n\r\nimport java.time.LocalDate;\r\nimport java.time.format.DateTimeFormatter;\r\nimport java.util.ArrayList;\r\nimport java.util.Collections;\r\nimport java.util.List;\r\nimport java.util.Optional;\r\n\r\n@Controller\r\n@RequestMapping(\"/banhang\")\r\npublic class banhangcontroller {\r\n    @Autowired\r\n    private SPCTRepository sanPhamChiTietRepository;\r\n\r\n    @Autowired\r\n    private HDCTRepository hoaDonChiTietRepository;\r\n\r\n    @Autowired\r\n    private HoaDonRepository hoaDonRepository;\r\n\r\n    @Autowired\r\n    private NhanVienRepository nhanVienRepository;\r\n\r\n    @Autowired\r\n    private KhachHangRepository khachHangRepository;\r\n    @ModelAttribute(\"listnv\")\r\n    List<nhanvien> getall(){\r\n        return nhanVienRepository.findAll();\r\n    }\r\n    @ModelAttribute(\"listkh\")\r\n    List<khachhang> getallkh(){\r\n        return khachHangRepository.findAll();\r\n    }\r\n    private List<CartItem> list_CartItem = new ArrayList<>();\r\n\r\n    public Integer getTongSoLuong() {\r\n        return list_CartItem.stream().mapToInt(CartItem::getSoLuong).sum();\r\n    }\r\n\r\n//    private Integer idUpdate = 0;\r\n\r\n    public Double getTongTien() {\r\n        return list_CartItem.stream()\r\n                .mapToDouble(item -> item.getSoLuong() * item.getDonGia())\r\n                .sum();\r\n    }\r\n    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(\"yyyy-MM-dd\");\r\n    String ngayHienTai = LocalDate.now().format(formatter);\r\n\r\n    @GetMapping(\"/hien-thi\")\r\n    public String showDs(Model model,\r\n                         @RequestParam(value = \"idHoaDon\", required = false) Integer idHoaDon) {\r\n        if (idHoaDon != null) {\r\n            // Tìm hóa đơn chi tiết theo ID và thêm vào model\r\n            model.addAttribute(\"list_HoaDon\", hoaDonChiTietRepository.findById(idHoaDon).orElse(null));\r\n        } else {\r\n            // Nếu không có ID, lấy tất cả hóa đơn chi tiết\r\n            model.addAttribute(\"list_HoaDon\", hoaDonChiTietRepository.findAll());\r\n        }\r\n\r\n        // Xóa các mục trong giỏ hàng (nếu cần thiết)\r\n        // cartItems.clear();\r\n\r\n        return \"banhang/hien-thi\"; // Trả về view\r\n    }\r\n    @PostMapping(\"/update-item\")\r\n    public String updateItemInCart(@RequestParam(\"sanPhamChiTietId\") Integer id,\r\n                                   @RequestParam(\"soLuongGio\") Integer soLuong) {\r\n        for (CartItem cartItem : list_CartItem) {\r\n            if (cartItem.getSanPhamChiTietId().equals(id)) {\r\n                spchitiet sanPhamChiTiet = sanPhamChiTietRepository.getReferenceById(id);\r\n                sanPhamChiTiet.setSoluong(sanPhamChiTiet.getSoluong() + cartItem.getSoLuong() - soLuong);\r\n                sanPhamChiTietRepository.save(sanPhamChiTiet);\r\n                cartItem.setSoLuong(soLuong);\r\n                break;\r\n            }\r\n        }\r\n        return \"redirect:/banhang/add\";\r\n    }\r\n    @GetMapping(\"/detail\")\r\n    public String chiTiet(Model model, @RequestParam(\"id\") Integer id) {\r\n\r\n        hoadon hoaDon = hoaDonRepository.getReferenceById(id);\r\n\r\n        List<hdchitiet> list_HoaDonChiTiet = hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(id);\r\n\r\n        model.addAttribute(\"hoaDon\", hoaDon);\r\n        model.addAttribute(\"list_HoaDonChiTiet\", list_HoaDonChiTiet);\r\n\r\n        return \"banhang/detail\";\r\n    }\r\n    @GetMapping(\"/search\")\r\n    public String searchHoaDonById(@RequestParam(value = \"idHoaDon\", required = false) Integer idHoaDon, Model model) {\r\n\r\n        List<hdchitiet> list_HoaDonChiTiet;\r\n\r\n        if (idHoaDon != null) {\r\n            list_HoaDonChiTiet = hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon);\r\n        } else {\r\n            // Nếu không có ID, lấy tất cả hóa đơn chi tiết\r\n            list_HoaDonChiTiet = hoaDonChiTietRepository.findAll();\r\n        }\r\n\r\n        model.addAttribute(\"list_HoaDon\", list_HoaDonChiTiet);\r\n        return \"banhang/hien-thi\";\r\n    }\r\n\r\n    @GetMapping(\"/add\")\r\n    public String searchSanPhamChiTiet(@RequestParam(value = \"idSearch\", required = false) Integer idSearch, Model model) {\r\n        List<spchitiet> list_SanPhamChiTiet;\r\n\r\n        if (idSearch != null) {\r\n            Optional<spchitiet> optionalSanPhamChiTiet = sanPhamChiTietRepository.findById(idSearch);\r\n            list_SanPhamChiTiet = optionalSanPhamChiTiet.map(List::of).orElseGet(Collections::emptyList);\r\n        } else {\r\n            list_SanPhamChiTiet = sanPhamChiTietRepository.findAll();\r\n        }\r\n\r\n        model.addAttribute(\"list_SanPhamChiTiet\", list_SanPhamChiTiet);\r\n\r\n        // Thêm các thuộc tính cần thiết khác vào model\r\n        model.addAttribute(\"list_CartItem\", list_CartItem);\r\n        model.addAttribute(\"idSanPhamChiTiet\", \"Tổng mặt hàng: \" + list_CartItem.size() + \" mặt hàng\");\r\n        model.addAttribute(\"soLuongForm\", \"Tổng số lượng: \" + getTongSoLuong() + \" sản phẩm!\");\r\n        model.addAttribute(\"tongTien\", \"Tổng tiền: \" + getTongTien() + \" VND.\");\r\n        model.addAttribute(\"ngayHienTai\", ngayHienTai);\r\n\r\n        return \"banhang/add\";\r\n    }\r\n    @PostMapping(\"/add-item\")\r\n    public String addItemToCart(@RequestParam(\"sanPhamChiTietId\") Integer sanPhamChiTietId,\r\n                                @RequestParam(\"soluong\") Integer soluong, Model model) {\r\n        spchitiet sanPhamChiTiet = sanPhamChiTietRepository.getReferenceById(sanPhamChiTietId);\r\n\r\n        if (soluong > sanPhamChiTiet.getSoluong()) {\r\n            model.addAttribute(\"error\", \"Số lượng không đủ.\");\r\n            model.addAttribute(\"list_SanPhamChiTiet\", sanPhamChiTietRepository.findAll());\r\n            return \"banhang/add\";\r\n        }\r\n\r\n        sanPhamChiTiet.setSoluong(sanPhamChiTiet.getSoluong() - soluong);\r\n        sanPhamChiTietRepository.save(sanPhamChiTiet);\r\n\r\n\r\n        boolean productExistsInCart = false;\r\n        for (CartItem cartItem : list_CartItem) {\r\n            if (cartItem.getSanPhamChiTietId().equals(sanPhamChiTietId)) {\r\n                cartItem.setSoLuong(cartItem.getSoLuong() + soluong);\r\n                productExistsInCart = true;\r\n                break;\r\n            }\r\n        }\r\n\r\n        if (!productExistsInCart) {\r\n            CartItem cartItem = new CartItem(sanPhamChiTietId, sanPhamChiTiet.getSanPham().getTen(),\r\n                    sanPhamChiTiet.getMauSac().getTenms(), sanPhamChiTiet.getKichThuoc().getTenkt(),\r\n                    soluong, sanPhamChiTiet.getDongia());\r\n            list_CartItem.add(cartItem);\r\n        }\r\n\r\n        return \"redirect:/banhang/add\";\r\n    }\r\n//    @PostMapping(\"/add\")\r\n//    public String addHoaDonFromCart(@ModelAttribute hoadon hoaDon,\r\n//                                    @RequestParam(\"thanh_toan\") Boolean thanhToan,\r\n//                                    Model model) {\r\n//\r\n//        boolean hasError = false;\r\n//\r\n//        if (list_CartItem.isEmpty()) {\r\n//            model.addAttribute(\"error\", \"Hãy chọn sản phẩm!\");\r\n//            hasError = true;\r\n//        }\r\n//\r\n//        if (hoaDon.getKhachHang() == null || hoaDon.getKhachHang().getId() == null) {\r\n//            model.addAttribute(\"errorkhachHang\", \"Hãy chọn khách hàng!\");\r\n//            hasError = true;\r\n//        }\r\n//\r\n//        if (hoaDon.getNhanVien() == null || hoaDon.getNhanVien().getId() == null) {\r\n//            model.addAttribute(\"errornhanVien\", \"Hãy chọn nhân viên!\");\r\n//            hasError = true;\r\n//        }\r\n//\r\n//        if (hasError) {\r\n//            model.addAttribute(\"list_CartItem\", list_CartItem);\r\n//            model.addAttribute(\"idSanPhamChiTiet\", \"Tổng mặt hàng: \" + list_CartItem.size() + \" mặt hàng\");\r\n//            model.addAttribute(\"soLuongForm\", \"Tổng số lượng: \" + getTongSoLuong() + \" sản phẩm!\");\r\n//            model.addAttribute(\"list_SanPhamChiTiet\", sanPhamChiTietRepository.findAll());\r\n//            model.addAttribute(\"ngayHienTai\", ngayHienTai);\r\n//\r\n//            return \"banhang/add\";\r\n//        }\r\n//\r\n//        hoaDon.setNgaymh(LocalDate.now());\r\n//        hoaDon.setTrangThai(thanhToan);\r\n//        hoaDonRepository.save(hoaDon);\r\n//\r\n//        for (CartItem cartItem : list_CartItem) {\r\n//            hdchitiet hoaDonChiTiet = new hdchitiet();\r\n//            hoaDonChiTiet.setHoaDon(hoaDon);\r\n//            hoaDonChiTiet.setSpChiTiet(sanPhamChiTietRepository.getReferenceById(cartItem.getSanPhamChiTietId()));\r\n//            hoaDonChiTiet.setSoluong(cartItem.getSoLuong());\r\n//            hoaDonChiTiet.setDongia(cartItem.getDonGia());\r\n//            hoaDonChiTiet.setTrangThai(thanhToan);\r\n//\r\n//            hoaDonChiTietRepository.save(hoaDonChiTiet);\r\n//        }\r\n//\r\n//        list_CartItem.clear();\r\n//        return \"redirect:/banhang/hien-thi\";\r\n//    }\r\n@PostMapping(\"/add\")\r\npublic String addHoaDonFromCart(@ModelAttribute hoadon hoaDon,\r\n                                @RequestParam(\"thanh_toan\") Boolean thanhToan) {\r\n    hoaDon.setNgaymh(LocalDate.now());\r\n    hoaDon.setTrangThai(thanhToan);\r\n    hoaDonRepository.save(hoaDon);\r\n\r\n    for (CartItem cartItem : list_CartItem) {\r\n        hdchitiet hoaDonChiTiet = new hdchitiet();\r\n        hoaDonChiTiet.setHoaDon(hoaDon);\r\n        hoaDonChiTiet.setSpChiTiet(sanPhamChiTietRepository.getReferenceById(cartItem.getSanPhamChiTietId()));\r\n        hoaDonChiTiet.setSoluong(cartItem.getSoLuong());\r\n        hoaDonChiTiet.setDongia(cartItem.getDonGia());\r\n        hoaDonChiTiet.setTrangThai(thanhToan);\r\n\r\n        hoaDonChiTietRepository.save(hoaDonChiTiet);\r\n    }\r\n\r\n    // Xóa giỏ hàng sau khi thanh toán\r\n    list_CartItem.clear();\r\n//    return \"banhang/hoa-don\";  // Thay thế với đường dẫn đến trang JSP hóa đơn\r\n    return \"redirect:/banhang/hien-thi\";\r\n}\r\n    @GetMapping(\"/remove\")\r\n    public String removeItemFromCart(@RequestParam(\"id\") Integer id) {\r\n        list_CartItem.removeIf(cartItem -> {\r\n            if (cartItem.getSanPhamChiTietId().equals(id)) {\r\n                spchitiet sanPhamChiTiet = sanPhamChiTietRepository.getReferenceById(id);\r\n                sanPhamChiTiet.setSoluong(sanPhamChiTiet.getSoluong() + cartItem.getSoLuong());\r\n                sanPhamChiTietRepository.save(sanPhamChiTiet);\r\n                return true;\r\n            }\r\n            return false;\r\n        });\r\n        return \"redirect:/banhang/add\";\r\n    }\r\n@GetMapping(\"/hoadon\")\r\n    public String hoadon(@ModelAttribute hoadon hoaDon,Model model){\r\n\r\n    model.addAttribute(\"list_CartItem\", list_CartItem);\r\n    model.addAttribute(\"idSanPhamChiTiet\", \"Tổng: \" + list_CartItem.size() + \" mặt hàng\");\r\n    model.addAttribute(\"soLuongForm\", \"Tổng: \" + getTongSoLuong() + \" sản phẩm!\");\r\n    model.addAttribute(\"list_SanPhamChiTiet\", sanPhamChiTietRepository.findAll());\r\n    model.addAttribute(\"ngayHienTai\", ngayHienTai);\r\n    model.addAttribute(\"tongTien\", getTongTien());\r\n        return \"banhang/hoa-don\";\r\n\r\n}\r\n\r\n\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/example/asmgd1/asm/controller/banhangcontroller.java b/src/main/java/com/example/asmgd1/asm/controller/banhangcontroller.java
+--- a/src/main/java/com/example/asmgd1/asm/controller/banhangcontroller.java	(revision de35ee53001e128e9a35ca94eb32bbc32e324bda)
++++ b/src/main/java/com/example/asmgd1/asm/controller/banhangcontroller.java	(date 1732930784849)
+@@ -32,7 +32,7 @@
+     @Autowired
+     private KhachHangRepository khachHangRepository;
+     @ModelAttribute("listnv")
+-    List<nhanvien> getall(){
++    List<NhanVien> getall(){
+         return nhanVienRepository.findAll();
+     }
+     @ModelAttribute("listkh")
+Index: src/main/java/com/example/asmgd1/Service/NhanVienService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.asmgd1.Service;\r\n\r\nimport com.example.asmgd1.asm.Repository.NhanVienRepository;\r\nimport com.example.asmgd1.asm.model.nhanvien;\r\nimport org.springframework.beans.factory.annotation.Autowired;\r\nimport org.springframework.stereotype.Service;\r\n\r\nimport java.util.List;\r\nimport java.util.Optional;\r\n\r\n@Service\r\npublic class NhanVienService {\r\n    @Autowired\r\n    private NhanVienRepository nvr;\r\n    public List<nhanvien> getAllNhanVien() {\r\n        return nvr.findAll();\r\n    }\r\n\r\n    public nhanvien getNhanVienById(Integer id) {\r\n        Optional<nhanvien> optionalKhachHang = nvr.findById(id);\r\n        if (optionalKhachHang.isPresent()) {\r\n            return optionalKhachHang.get();\r\n        }\r\n        return null;\r\n    }\r\n\r\n    public List<nhanvien> findNhanviensByid(Integer id) {\r\n        return nvr.searchBynv(id);\r\n    }\r\n\r\n    public nhanvien saveNhanVien(nhanvien nhanVien) {\r\n        return nvr.save(nhanVien);\r\n    }\r\n\r\n    public nhanvien updateNhanVien(Integer id, nhanvien updatednv) {\r\n        Optional<nhanvien> optionalNhanVien = nvr.findById(id);\r\n        if (optionalNhanVien.isPresent()) {\r\n            nhanvien existingNhanVien = optionalNhanVien.get();\r\n            existingNhanVien.setTennv(updatednv.getTennv());\r\n            existingNhanVien.setManv(updatednv.getManv());\r\n            existingNhanVien.setTendn(updatednv.getTendn());\r\n            existingNhanVien.setMatkhau(updatednv.getMatkhau());\r\n            existingNhanVien.setTrangThai(updatednv.isTrangThai());\r\n            return nvr.save(existingNhanVien);\r\n        }\r\n        return null;\r\n    }\r\n\r\n    public boolean deleteNhanVien(Integer id) {\r\n        if (nvr.existsById(id)) {\r\n            nvr.deleteById(id);\r\n            return true;\r\n        }\r\n        return false;\r\n    }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/example/asmgd1/Service/NhanVienService.java b/src/main/java/com/example/asmgd1/Service/NhanVienService.java
+--- a/src/main/java/com/example/asmgd1/Service/NhanVienService.java	(revision de35ee53001e128e9a35ca94eb32bbc32e324bda)
++++ b/src/main/java/com/example/asmgd1/Service/NhanVienService.java	(date 1732930850267)
+@@ -1,56 +1,117 @@
+ package com.example.asmgd1.Service;
+ 
+ import com.example.asmgd1.asm.Repository.NhanVienRepository;
+-import com.example.asmgd1.asm.model.nhanvien;
++import com.example.asmgd1.asm.model.NhanVien;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.stereotype.Service;
+ 
++import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Optional;
++import java.util.stream.Collectors;
+ 
+-@Service
+ public class NhanVienService {
+-    @Autowired
+-    private NhanVienRepository nvr;
+-    public List<nhanvien> getAllNhanVien() {
+-        return nvr.findAll();
++    List<NhanVien> nhanVienList = new ArrayList<>();
++
++    public List<NhanVien> getAllNhanVien() {
++        return nhanVienList;
+     }
+ 
+-    public nhanvien getNhanVienById(Integer id) {
+-        Optional<nhanvien> optionalKhachHang = nvr.findById(id);
+-        if (optionalKhachHang.isPresent()) {
+-            return optionalKhachHang.get();
++    private String validateNhanVien(NhanVien nv) {
++        if (nv.getTennv() == null || nv.getTennv().trim().isEmpty()) {
++            return "Tên nhân viên không được để trống";
++        }
++        if (nv.getManv() == null || nv.getManv().trim().isEmpty()) {
++            return "Mã nhân viên không được để trống";
++        }
++        if (nv.getTendn() == null || nv.getTendn().trim().isEmpty()) {
++            return "Tên đăng nhập không được để trống";
++        }
++        if (nv.getMatkhau() == null || nv.getMatkhau().trim().isEmpty()) {
++            return "Mật khẩu không được để trống";
+         }
+-        return null;
++        return null; // Không có lỗi
+     }
++
++    // Thêm nhân viên
++    public String addNhanVien(NhanVien nv) {
++        String validationError = validateNhanVien(nv);
++        if (validationError != null) {
++            return validationError;
++        }
+ 
+-    public List<nhanvien> findNhanviensByid(Integer id) {
+-        return nvr.searchBynv(id);
++        nhanVienList.add(nv);
++        return "Thêm nhân viên thành công";
+     }
+ 
+-    public nhanvien saveNhanVien(nhanvien nhanVien) {
+-        return nvr.save(nhanVien);
+-    }
++    // Sửa nhân viên
++    public String updateNhanVien(int id, NhanVien newInfo) {
++        Optional<NhanVien> nv = nhanVienList.stream()
++                .filter(nhanVien -> nhanVien.getId() == id)
++                .findFirst();
++
++        if (nv.isPresent()) {
++            String validationError = validateNhanVien(newInfo);
++            if (validationError != null) {
++                return validationError;
++            }
+ 
+-    public nhanvien updateNhanVien(Integer id, nhanvien updatednv) {
+-        Optional<nhanvien> optionalNhanVien = nvr.findById(id);
+-        if (optionalNhanVien.isPresent()) {
+-            nhanvien existingNhanVien = optionalNhanVien.get();
+-            existingNhanVien.setTennv(updatednv.getTennv());
+-            existingNhanVien.setManv(updatednv.getManv());
+-            existingNhanVien.setTendn(updatednv.getTendn());
+-            existingNhanVien.setMatkhau(updatednv.getMatkhau());
+-            existingNhanVien.setTrangThai(updatednv.isTrangThai());
+-            return nvr.save(existingNhanVien);
++            NhanVien existing = nv.get();
++            existing.setTennv(newInfo.getTennv());
++            existing.setManv(newInfo.getManv());
++            existing.setTendn(newInfo.getTendn());
++            existing.setMatkhau(newInfo.getMatkhau());
++            existing.setTrangThai(newInfo.isTrangThai());
++            return "Cập nhật nhân viên thành công";
+         }
+-        return null;
++
++        return "Không tìm thấy nhân viên với ID " + id;
+     }
+ 
+-    public boolean deleteNhanVien(Integer id) {
+-        if (nvr.existsById(id)) {
+-            nvr.deleteById(id);
+-            return true;
++
++    public NhanVien findById(int id) {
++        for (NhanVien nv : nhanVienList) {
++            if (nv.getId() == id) {
++                return nv;  // Trả về nhân viên nếu tìm thấy
++            }
+         }
+-        return false;
++        return null;  // Trả về null nếu không tìm thấy
++    }
++
++    // Xóa nhân viên
++    public String deleteNhanVien(int id) {
++        NhanVien nv = findById(id);  // Tìm nhân viên theo ID
++        if (nv != null) {
++            nhanVienList.remove(nv);  // Nếu tìm thấy, xóa nhân viên khỏi danh sách
++            return "Xóa nhân viên thành công";
++        } else {
++            return "Không tìm thấy nhân viên với ID " + id;  // Nếu không tìm thấy nhân viên
++        }
++    }
++
++
++    public NhanVien getNhanVienById(int id) {
++        if (id <= 0) {  // Kiểm tra nếu ID không hợp lệ
++            throw new IllegalArgumentException("ID phải là một số dương.");
++        }
++        return nhanVienList.stream()
++                .filter(nv -> nv.getId() == id)
++                .findFirst()
++                .orElse(null);  // Trả về null nếu không tìm thấy nhân viên với ID đó
++    }
++
++    public List<NhanVien> getNhanVienByName(String name) {
++        if (name == null || name.trim().isEmpty()) {  // Kiểm tra tên không được null hoặc trống
++            throw new IllegalArgumentException("Tên không được để trống.");
++        }
++
++        // Kiểm tra nếu tên chứa toàn bộ là số
++        if (name.matches("\\d+")) {
++            throw new IllegalArgumentException("Tên không thể chứa toàn bộ số.");
++        }
++
++        return nhanVienList.stream()
++                .filter(nv -> nv.getTennv().equalsIgnoreCase(name))
++                .collect(Collectors.toList());  // Trả về danh sách nhân viên có tên trùng khớp
+     }
+ }
+Index: src/main/java/com/example/asmgd1/asm/controller/trangchuController.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.asmgd1.asm.controller;\r\n\r\nimport com.example.asmgd1.Service.*;\r\nimport com.example.asmgd1.asm.Repository.*;\r\nimport com.example.asmgd1.asm.model.*;\r\n\r\nimport jakarta.validation.Valid;\r\nimport org.springframework.beans.factory.annotation.Autowired;\r\nimport org.springframework.stereotype.Controller;\r\nimport org.springframework.ui.Model;\r\nimport org.springframework.validation.BindingResult;\r\nimport org.springframework.web.bind.annotation.*;\r\n\r\nimport java.util.ArrayList;\r\nimport java.util.List;\r\n\r\n@Controller\r\n@RequestMapping(\"/asm\")\r\npublic class trangchuController {\r\n    @Autowired\r\n    private SanPhamService sanPhamRepository;\r\n    @Autowired\r\n    private KhachHangService khachHangRepository;\r\n    @Autowired\r\n    private NhanVienService nhanVienRepository;\r\n    @Autowired\r\n    private SanPhamChiTietService spctRepository;\r\n    @Autowired\r\n    private KichThuocService kichThuocRepository;\r\n    @Autowired\r\n    private MauSacService mauSacRepository;\r\n    @Autowired\r\n    private HoaDonService hoaDonRepository;\r\n    @Autowired\r\n    private HoaDonRepository hdr;\r\n    @Autowired\r\n    private HoaDonChiTietService hdctRepository;\r\n\r\n    //    view hien thi\r\n    @GetMapping(\"/view\")\r\n    public String showDs(Model model,\r\n                         @RequestParam(value = \"idHoaDon\", required = false) Integer idHoaDon) {\r\n        if (idHoaDon != null) {\r\n            // Tìm hóa đơn chi tiết theo ID và thêm vào model\r\n            model.addAttribute(\"list_HoaDon\", hdctRepository.getHoaDonChiTietByHoaDonId(idHoaDon));\r\n        } else {\r\n            // Nếu không có ID, lấy tất cả hóa đơn chi tiết\r\n            model.addAttribute(\"list_HoaDon\", hdctRepository.getAllHoaDonChiTiet());\r\n        }\r\n        return \"/asm/trang-chu\";\r\n    }\r\n\r\n    // sản phẩm\r\n    @GetMapping(\"/search\")\r\n    public String search(@RequestParam(\"id\") Integer hihi,Model model){\r\n\r\n\r\n        List<sanpham> resultsp=sanPhamRepository.searchSanPham(hihi);\r\n        model.addAttribute(\"listSP\", resultsp);\r\n        return \"/asm/hienthi-san-pham\";\r\n\r\n    }\r\n    @GetMapping(\"/hienthi-san-pham\")\r\n    public String hienThisp(@RequestParam(defaultValue = \"0\") int page,  Model model) {\r\n//        Pageable pageable= PageRequest.of(page,5);// 5 phan tu tren 1 trang\r\n//        Page<sanpham> sanphamPage=sanPhamRepository.findall(pageable);\r\n\r\n\r\n//        model.addAttribute(\"currentPage\",sanphamPage.getContent());\r\n//        model.addAttribute(\"totalPages\",sanphamPage.getTotalPages());\r\n//        model.addAttribute(\"sanpham\", new sanpham());\r\n//\r\n        model.addAttribute(\"listSP\", sanPhamRepository.getAllSanPham());\r\n       // model.addAttribute(\"listSP\", sanphamPage.getContent()); // Lấy danh sách sản phẩm trong trang hiện tại\r\n        model.addAttribute(\"currentPage\", page); // Trang hiện tại\r\n      //  model.addAttribute(\"totalPages\", sanphamPage.getTotalPages()); // Tổng số trang\r\n        model.addAttribute(\"sanpham\", new sanpham());\r\n        return \"/asm/hienthi-san-pham\";\r\n    }\r\n\r\n    @GetMapping(\"/xoa\")\r\n    public String deletesp(@RequestParam(\"id\") Integer id) {\r\n        sanPhamRepository.deleteSanPham(id);\r\n        return \"redirect:/asm/hienthi-san-pham\";\r\n    }\r\n\r\n    @GetMapping(\"/addSP\")\r\n    public String addsp(Model model) {\r\n        model.addAttribute(\"sanpham\", new sanpham());\r\n        return \"/asm/add-sp\";\r\n    }\r\n\r\n    @PostMapping(\"/addSP\")\r\n    public String addsp(\r\n            @Valid @ModelAttribute(\"sanpham\") sanpham sp, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listSP\", sanPhamRepository.getAllSanPham());\r\n            return \"/asm/add-sp\";\r\n        }\r\n        sanPhamRepository.addSanPham(sp);\r\n        return \"redirect:/asm/hienthi-san-pham\";\r\n    }\r\n\r\n    @GetMapping(\"/updateSP\")\r\n    public String updatesp(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"sp\", sanPhamRepository.getSanPhamById(id));\r\n\r\n        return \"/asm/update-sp\";\r\n    }\r\n\r\n    @GetMapping(\"/detailsSP\")\r\n    public String detailssp(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"sp\", sanPhamRepository.getSanPhamById(id));\r\n\r\n        return \"/asm/details-sp\";\r\n    }\r\n\r\n    @PostMapping(\"/updateSP\")\r\n    public String updatesp(@PathVariable Integer id,sanpham sp) {\r\n        sanPhamRepository.updateSanPham(id,sp);\r\n        return \"redirect:/asm/hienthi-san-pham\";\r\n    }\r\n\r\n    // sản phẩm chi tiết\r\n    @GetMapping(\"/searchspct\")\r\n    public String searchspct(@RequestParam(\"id\") Integer id,Model model){\r\n        List<spchitiet> resultspct=spctRepository.searchSanPhamChiTiet(id);\r\n        model.addAttribute(\"listSPCT\", resultspct);\r\n        return \"/asm/hienthi-spct\";\r\n\r\n    }\r\n    @GetMapping(\"/ht-spct\")\r\n    public String htspct(Model model) {\r\n        model.addAttribute(\"listSPCT\", spctRepository.getAllSanPhamChiTiet());\r\n        return \"/asm/hienthi-spct\";\r\n    }\r\n\r\n    @GetMapping(\"/addspct\")\r\n    public String addspct(Model model) {\r\n        model.addAttribute(\"listkt\", kichThuocRepository.getAllKichThuoc());\r\n        model.addAttribute(\"listms\", mauSacRepository.getAllMauSac());\r\n        model.addAttribute(\"listSP\", sanPhamRepository.getAllSanPham());\r\n        model.addAttribute(\"SPCT\", new spchitiet());\r\n\r\n\r\n        return \"/asm/add-spct\";\r\n    }\r\n\r\n    @PostMapping(\"/addspct\")\r\n    public String addspct(\r\n            @Valid @ModelAttribute(\"SPCT\") spchitiet spct, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listkt\", kichThuocRepository.getAllKichThuoc());\r\n            model.addAttribute(\"listms\", mauSacRepository.getAllMauSac());\r\n            model.addAttribute(\"listSP\", sanPhamRepository.getAllSanPham());\r\n            model.addAttribute(\"listSPCT\", spctRepository.getAllSanPhamChiTiet());\r\n            return \"/asm/add-spct\";\r\n        }\r\n        spctRepository.saveSanPhamChiTiet(spct);\r\n        return \"redirect:/asm/ht-spct\";\r\n    }\r\n\r\n    @GetMapping(\"/updatespct\")\r\n    public String updatespct(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"spct\", spctRepository.getSanPhamChiTietById(id));\r\n\r\n\r\n        // Thêm danh sách kích thước, màu sắc và sản phẩm vào model\r\n        model.addAttribute(\"listkt\", kichThuocRepository.getAllKichThuoc());\r\n        model.addAttribute(\"listms\", mauSacRepository.getAllMauSac());\r\n        model.addAttribute(\"listSP\", sanPhamRepository.getAllSanPham());\r\n\r\n        return \"/asm/update-spct\"; // Trả về trang cập nhật sản phẩm chi tiết\r\n    }\r\n\r\n    @GetMapping(\"/detailsspct\")\r\n    public String detailsspct(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"spct\", spctRepository.getSanPhamChiTietById(id));\r\n\r\n        model.addAttribute(\"listkt\", kichThuocRepository.getAllKichThuoc());\r\n        model.addAttribute(\"listms\", mauSacRepository.getAllMauSac());\r\n        model.addAttribute(\"listSP\", sanPhamRepository.getAllSanPham());\r\n        return \"/asm/details-spct\";\r\n    }\r\n\r\n    @PostMapping(\"/updatespct\")\r\n    public String updatespct(spchitiet spct) {\r\n        spctRepository.saveSanPhamChiTiet(spct);\r\n        return \"redirect:/asm/ht-spct\";\r\n    }\r\n\r\n    @GetMapping(\"/xoaspct\")\r\n    public String deletespct(@RequestParam(\"id\") Integer id) {\r\n        spctRepository.deleteSanPhamChiTiet(id);\r\n        return \"redirect:/asm/ht-spct\";\r\n    }\r\n\r\n\r\n    // khách hàng\r\n\r\n//    @GetMapping(\"/searchkh\")\r\n//    public String searchkh(@RequestParam(\"id\") Integer id,Model model){\r\n//        ArrayList<khachhang> resultkh=khachHangRepository.searchBykh(id);\r\n//        model.addAttribute(\"listkh\", resultkh);\r\n//        return \"/asm/hienthi-kh\";\r\n//\r\n//    }\r\n\r\n    @GetMapping(\"/ht-khachhang\")\r\n    public String khachhangview(Model model) {\r\n\r\n        model.addAttribute(\"listkh\", khachHangRepository.getAllKhachHang());\r\n        return \"/asm/hienthi-kh\";\r\n    }\r\n\r\n    @GetMapping(\"/addkh\")\r\n    public String addkh(Model model) {\r\n        model.addAttribute(\"khachhang\", new khachhang());\r\n        return \"/asm/add-kh\";\r\n    }\r\n\r\n    @PostMapping(\"/addkh\")\r\n    public String addkh(\r\n            @Valid @ModelAttribute(\"khachhang\") khachhang kh, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listkh\", khachHangRepository.getAllKhachHang());\r\n            return \"/asm/add-kh\";\r\n        }\r\n        khachHangRepository.saveKhachHang(kh);\r\n        return \"redirect:/asm/ht-khachhang\";\r\n    }\r\n\r\n    @GetMapping(\"/updatekh\")\r\n    public String updatekh(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"kh\", khachHangRepository.getKhachHangById(id));\r\n\r\n        return \"/asm/update-kh\";\r\n\r\n    }\r\n\r\n    @GetMapping(\"/detailskh\")\r\n    public String detailskh(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"kh\", khachHangRepository.getKhachHangById(id));\r\n\r\n        return \"/asm/details-kh\";\r\n    }\r\n\r\n    @PostMapping(\"/updatekh\")\r\n    public String updatekh(khachhang kh) {\r\n        khachHangRepository.updateKhachHang(kh.getId(),kh);\r\n        return \"redirect:/asm/ht-khachhang\";\r\n    }\r\n\r\n    @GetMapping(\"/xoakh\")\r\n    public String xoakh(@RequestParam(\"id\") Integer id) {\r\n        khachHangRepository.deleteKhachHang(id);\r\n        return \"redirect:/asm/ht-khachhang\";\r\n    }\r\n\r\n\r\n    //nhân viên\r\n\r\n    @GetMapping(\"/searchnv\")\r\n    public String searchnv(@RequestParam(\"id\") Integer id,Model model){\r\n        List<nhanvien> resultnv=nhanVienRepository.findNhanviensByid(id);\r\n        model.addAttribute(\"listnv\", resultnv);\r\n        return \"/asm/hienthi-nv\";\r\n\r\n    }\r\n\r\n    @GetMapping(\"/ht-nv\")\r\n    public String nhanvienview(Model model) {\r\n        model.addAttribute(\"listnv\", nhanVienRepository.getAllNhanVien());\r\n        return \"/asm/hienthi-nv\";\r\n    }\r\n\r\n    @GetMapping(\"/addnv\")\r\n    public String addnv(Model model) {\r\n        model.addAttribute(\"nhanvien\", new nhanvien());\r\n        return \"/asm/add-nv\";\r\n    }\r\n\r\n    @PostMapping(\"/addnv\")\r\n    public String addnv(\r\n            @Valid @ModelAttribute(\"nhanvien\") nhanvien nv, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listnv\", nhanVienRepository.getAllNhanVien());\r\n            return \"/asm/add-nv\";\r\n        }\r\n        nhanVienRepository.saveNhanVien(nv);\r\n        return \"redirect:/asm/ht-nv\";\r\n    }\r\n\r\n    @GetMapping(\"/updatenv/{id}\")\r\n    public String updatenv(@PathVariable(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"nv\", nhanVienRepository.getNhanVienById(id));\r\n\r\n\r\n        return \"/asm/update-nv\";\r\n    }\r\n\r\n    @GetMapping(\"/detailsnv\")\r\n    public String detailsnv(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"nv\", nhanVienRepository.getNhanVienById(id));\r\n\r\n\r\n        return \"/asm/details-nv\";\r\n    }\r\n\r\n    @PostMapping(\"/updatenv/{id}\")\r\n    public String updatenv(@PathVariable Integer id, nhanvien nv) {\r\n        nhanVienRepository.updateNhanVien(id,nv);\r\n        return \"redirect:/asm/ht-nv\";\r\n    }\r\n\r\n    @GetMapping(\"/xoanv\")\r\n    public String xoanv(@RequestParam(\"id\") Integer id) {\r\n        nhanVienRepository.deleteNhanVien(id);\r\n        return \"redirect:/asm/ht-nv\";\r\n    }\r\n\r\n\r\n    //hoá đơn\r\n\r\n    @GetMapping(\"/searchhd\")\r\n    public String searchhd(@RequestParam(\"id\") Integer id,Model model){\r\n        ArrayList<hoadon> resulthd=hdr.searchByhd(id);\r\n        model.addAttribute(\"listhd\", resulthd);\r\n        return \"/asm/hienthi-hd\";\r\n\r\n    }\r\n\r\n    @GetMapping(\"/ht-hd\")\r\n    public String hoadonview(Model model) {\r\n        model.addAttribute(\"listhd\", hoaDonRepository.getAllHoaDon());\r\n        return \"/asm/hienthi-hd\";\r\n    }\r\n\r\n    @GetMapping(\"/addhd\")\r\n    public String addhd(Model model) {\r\n        model.addAttribute(\"hd\", new hoadon());\r\n        model.addAttribute(\"listnv\", nhanVienRepository.getAllNhanVien());\r\n        model.addAttribute(\"listkh\", khachHangRepository.getAllKhachHang());\r\n        return \"/asm/add-hd\";\r\n    }\r\n\r\n    @PostMapping(\"/addhd\")\r\n    public String addhd(\r\n            @Valid @ModelAttribute(\"hd\") hoadon hd, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listhd\", hoaDonRepository.getAllHoaDon());\r\n            model.addAttribute(\"listnv\", nhanVienRepository.getAllNhanVien());\r\n            model.addAttribute(\"listkh\", khachHangRepository.getAllKhachHang());\r\n            return \"/asm/add-hd\";\r\n        }\r\n        hoaDonRepository.saveHoaDon(hd);\r\n        return \"redirect:/asm/ht-hd\";\r\n    }\r\n\r\n    @GetMapping(\"/updatehd\")\r\n    public String updatehd(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"hd\", hoaDonRepository.getHoaDonById(id));\r\n\r\n        model.addAttribute(\"listnv\", nhanVienRepository.getAllNhanVien());\r\n        model.addAttribute(\"listkh\", khachHangRepository.getAllKhachHang());\r\n        return \"/asm/update-hd\";\r\n    }\r\n\r\n    @GetMapping(\"/detailshd\")\r\n    public String detailshd(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"hd\", hoaDonRepository.getHoaDonById(id));\r\n\r\n        model.addAttribute(\"listnv\", nhanVienRepository.getAllNhanVien());\r\n        model.addAttribute(\"listkh\", khachHangRepository.getAllKhachHang());\r\n        return \"/asm/details-hd\";\r\n    }\r\n\r\n    @PostMapping(\"/updatehd\")\r\n    public String updatehd(hoadon hd) {\r\n        hoaDonRepository.saveHoaDon(hd);\r\n        return \"redirect:/asm/ht-hd\";\r\n    }\r\n\r\n    //hoá đơn chi tiết\r\n\r\n    @GetMapping(\"/searchhdct\")\r\n    public String searchhdct(@RequestParam(\"id\") Integer id,Model model){\r\n        List<hdchitiet> resulthdct=hdctRepository.searchByIdHdct(id);\r\n        model.addAttribute(\"listhdct\", resulthdct);\r\n        return \"/asm/hienthi-hdct\";\r\n\r\n    }\r\n\r\n    @GetMapping(\"/ht-hdct\")\r\n    public String hoadonchitietview(Model model) {\r\n        model.addAttribute(\"listhdct\", hdctRepository.getAllHoaDonChiTiet());\r\n        return \"/asm/hienthi-hdct\";\r\n    }\r\n\r\n    @GetMapping(\"/addhdct\")\r\n    public String addhdct(Model model) {\r\n        model.addAttribute(\"hdct\", new hdchitiet());\r\n        model.addAttribute(\"listhd\", hoaDonRepository.getAllHoaDon());\r\n        model.addAttribute(\"listSPCT\", spctRepository.getAllSanPhamChiTiet());\r\n        return \"/asm/add-hdct\";\r\n    }\r\n\r\n    @PostMapping(\"/addhdct\")\r\n    public String addhdct(\r\n            @Valid @ModelAttribute(\"hdct\") hdchitiet hdct, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listhdct\", hdctRepository.getAllHoaDonChiTiet());\r\n            model.addAttribute(\"listhd\", hoaDonRepository.getAllHoaDon());\r\n            model.addAttribute(\"listSPCT\", spctRepository.getAllSanPhamChiTiet());\r\n            return \"/asm/add-hdct\";\r\n        }\r\n        hdctRepository.saveHoaDonChiTiet(hdct);\r\n        return \"redirect:/asm/ht-hdct\";\r\n    }\r\n\r\n    @GetMapping(\"/updatehdct\")\r\n    public String updatehdct(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"hdct\", hdctRepository.getHoaDonChiTietById(id));\r\n//        Optional<HDChiTiet> optionalHdct = hdctRepository.findById(id);\r\n//        if (optionalHdct.isPresent()) {\r\n//            model.addAttribute(\"hdct\", optionalHdct.get());\r\n//        } else {\r\n//            model.addAttribute(\"errorMessage\", \"Không tìm thấy hóa đơn chi tiết với ID: \" + id);\r\n//        }\r\n        model.addAttribute(\"listhd\", hoaDonRepository.getAllHoaDon());\r\n        model.addAttribute(\"listSPCT\", spctRepository.getAllSanPhamChiTiet());\r\n        return \"/asm/update-hdct\";\r\n    }\r\n\r\n    @GetMapping(\"/detailshdct\")\r\n    public String detailshdct(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"hdct\", hdctRepository.getHoaDonChiTietById(id));\r\n\r\n//        Optional<HDChiTiet> optionalHdct = hdctRepository.findById(id);\r\n//        if (optionalHdct.isPresent()) {\r\n//            model.addAttribute(\"hdct\", optionalHdct.get());\r\n//        } else {\r\n//            model.addAttribute(\"errorMessage\", \"Không tìm thấy hóa đơn chi tiết với ID: \" + id);\r\n//        }\r\n        model.addAttribute(\"listhd\", hoaDonRepository.getAllHoaDon());\r\n        model.addAttribute(\"listSPCT\", spctRepository.getAllSanPhamChiTiet());\r\n        return \"/asm/details-hdct\";\r\n    }\r\n\r\n    @PostMapping(\"/updatehdct\")\r\n    public String updatehdct(hdchitiet hdct) {\r\n        hdctRepository.saveHoaDonChiTiet(hdct);\r\n        return \"redirect:/asm/ht-hdct\";\r\n    }\r\n\r\n//    @GetMapping(\"/xoahdct\")\r\n//    public String deletehdct(@RequestParam(\"id\") Integer id) {\r\n//        hdctRepository.deleteById(id);\r\n//        return \"redirect:/asm/ht-hdct\";\r\n//    }\r\n\r\n\r\n    //màu sắc\r\n\r\n    @GetMapping(\"/searchms\")\r\n    public String searchms(@RequestParam(\"id\") Integer id,Model model){\r\n        List<mausac> resultms=mauSacRepository.getMauSacsByid(id);\r\n        model.addAttribute(\"listms\", resultms);\r\n        return \"/asm/hienthi-mausac\";\r\n\r\n    }\r\n\r\n    @GetMapping(\"/ht-ms\")\r\n    public String mausacview(Model model) {\r\n        model.addAttribute(\"listms\", mauSacRepository.getAllMauSac());\r\n        return \"/asm/hienthi-mausac\";\r\n    }\r\n\r\n    @GetMapping(\"/addms\")\r\n    public String addms(Model model) {\r\n        model.addAttribute(\"mausac\", new mausac());\r\n        return \"/asm/add-ms\";\r\n    }\r\n\r\n    @PostMapping(\"/addms\")\r\n    public String addms(\r\n            @Valid @ModelAttribute(\"mausac\") mausac ms, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listms\", mauSacRepository.getAllMauSac());\r\n            return \"/asm/add-ms\";\r\n        }\r\n        mauSacRepository.createMauSac(ms);\r\n        return \"redirect:/asm/ht-ms\";\r\n    }\r\n\r\n    @GetMapping(\"/updatems\")\r\n    public String updatems(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"ms\", mauSacRepository.getMauSacById(id));\r\n//    Optional<MauSac> optionalMs = mauSacRepository.findById(id);\r\n//    if (optionalMs.isPresent()) {\r\n//        model.addAttribute(\"ms\", optionalMs.get());\r\n//    } else {\r\n//        model.addAttribute(\"errorMessage\", \"Không tìm thấy màu sắc với ID: \" + id);\r\n//    }\r\n        return \"/asm/update-ms\";\r\n    }\r\n\r\n    @GetMapping(\"/detailsms\")\r\n    public String detailsms(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"ms\", mauSacRepository.getMauSacById(id));\r\n\r\n//        Optional<MauSac> optionalMs = mauSacRepository.findById(id);\r\n//        if (optionalMs.isPresent()) {\r\n//            model.addAttribute(\"ms\", optionalMs.get());\r\n//        } else {\r\n//            model.addAttribute(\"errorMessage\", \"Không tìm thấy màu sắc với ID: \" + id);\r\n//        }\r\n        return \"/asm/details-ms\";\r\n    }\r\n\r\n    @PostMapping(\"/updatems\")\r\n    public String updatems(mausac ms) {\r\n        mauSacRepository.createMauSac(ms);\r\n        return \"redirect:/asm/ht-ms\";\r\n    }\r\n\r\n    @GetMapping(\"/xoams\")\r\n    public String xoams(@RequestParam(\"id\") Integer id) {\r\n        mauSacRepository.deleteMauSac(id);\r\n        return \"redirect:/asm/ht-ms\";\r\n    }\r\n\r\n    //kích thước\r\n\r\n    @GetMapping(\"/searchkt\")\r\n    public String searchkt(@RequestParam(\"id\") Integer id,Model model){\r\n        List<kichthuoc> resultkt=kichThuocRepository.searchKichThuoc(id);\r\n        model.addAttribute(\"listkt\", resultkt);\r\n        return \"/asm/hienthi-kichthuoc\";\r\n\r\n    }\r\n\r\n    @GetMapping(\"/ht-kt\")\r\n    public String kichthuocview(Model model) {\r\n        model.addAttribute(\"listkt\", kichThuocRepository.getAllKichThuoc());\r\n        return \"/asm/hienthi-kichthuoc\";\r\n    }\r\n\r\n    @GetMapping(\"/addkt\")\r\n    public String addkt(Model model) {\r\n        model.addAttribute(\"kichthuoc\", new kichthuoc());\r\n        return \"/asm/add-kt\";\r\n    }\r\n\r\n    @PostMapping(\"/addkt\")\r\n    public String addkt(\r\n            @Valid @ModelAttribute(\"kichthuoc\") kichthuoc kt, BindingResult result, Model model) {\r\n        if (result.hasErrors()) {\r\n            model.addAttribute(\"listkt\", kichThuocRepository.getAllKichThuoc());\r\n            return \"/asm/add-kt\";\r\n        }\r\n        kichThuocRepository.saveKichThuoc(kt);\r\n        return \"redirect:/asm/ht-kt\";\r\n    }\r\n\r\n    @GetMapping(\"/updatekt\")\r\n    public String updatekt(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"kt\", kichThuocRepository.getKichThuocById(id));\r\n//        Optional<KichThuoc> optionalKt = kichThuocRepository.findById(id);\r\n//        if (optionalKt.isPresent()) {\r\n//            model.addAttribute(\"kt\", optionalKt.get());\r\n//        } else {\r\n//            model.addAttribute(\"errorMessage\", \"Không tìm thấy kích thước với ID: \" + id);\r\n//        }\r\n        return \"/asm/update-kt\";\r\n    }\r\n\r\n    @GetMapping(\"/detailskt\")\r\n    public String detailskt(@RequestParam(\"id\") Integer id, Model model) {\r\n        model.addAttribute(\"kt\", kichThuocRepository.getKichThuocById(id));\r\n\r\n//        Optional<KichThuoc> optionalKt = kichThuocRepository.findById(id);\r\n//        if (optionalKt.isPresent()) {\r\n//            model.addAttribute(\"kt\", optionalKt.get());\r\n//        } else {\r\n//            model.addAttribute(\"errorMessage\", \"Không tìm thấy kích thước với ID: \" + id);\r\n//        }\r\n        return \"/asm/details-kt\";\r\n    }\r\n\r\n    @PostMapping(\"/updatekt/{id}\")\r\n    public String updatekt(@PathVariable Integer id, @ModelAttribute kichthuoc kt) {\r\n        kichThuocRepository.updateKichThuoc(id,kt);\r\n        return \"redirect:/asm/ht-kt\";\r\n    }\r\n\r\n    @GetMapping(\"/xoakt\")\r\n    public String xoakt(@RequestParam(\"id\") Integer id) {\r\n        kichThuocRepository.deleteKichThuoc(id);\r\n        return \"redirect:/asm/ht-kt\";\r\n    }\r\n\r\n    //login\r\n    @GetMapping(\"/login\")\r\n    public String login() {\r\n        return \"/asm/login\";\r\n    }\r\n\r\n    @PostMapping(\"/login\")\r\n    public String login(login loginRequest, Model model) {\r\n        if (loginRequest.getUsername().equals(\"123\") && loginRequest.getPassword().equals(\"123\")) {\r\n            model.addAttribute(\"username\", loginRequest.getUsername());\r\n            model.addAttribute(\"password\", loginRequest.getPassword());\r\n\r\n            return \"asm/trang-chu\";\r\n//            return \"redirect:/asm/ht-kt\";\r\n        }\r\n        model.addAttribute(\"error\", \"thong tin dang nhap sai\");\r\n        return \"asm/login\";\r\n\r\n\r\n    }\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/example/asmgd1/asm/controller/trangchuController.java b/src/main/java/com/example/asmgd1/asm/controller/trangchuController.java
+--- a/src/main/java/com/example/asmgd1/asm/controller/trangchuController.java	(revision de35ee53001e128e9a35ca94eb32bbc32e324bda)
++++ b/src/main/java/com/example/asmgd1/asm/controller/trangchuController.java	(date 1732930784839)
+@@ -262,7 +262,7 @@
+ 
+     @GetMapping("/searchnv")
+     public String searchnv(@RequestParam("id") Integer id,Model model){
+-        List<nhanvien> resultnv=nhanVienRepository.findNhanviensByid(id);
++        List<NhanVien> resultnv=nhanVienRepository.findNhanviensByid(id);
+         model.addAttribute("listnv", resultnv);
+         return "/asm/hienthi-nv";
+ 
+@@ -276,13 +276,13 @@
+ 
+     @GetMapping("/addnv")
+     public String addnv(Model model) {
+-        model.addAttribute("nhanvien", new nhanvien());
++        model.addAttribute("nhanvien", new NhanVien());
+         return "/asm/add-nv";
+     }
+ 
+     @PostMapping("/addnv")
+     public String addnv(
+-            @Valid @ModelAttribute("nhanvien") nhanvien nv, BindingResult result, Model model) {
++            @Valid @ModelAttribute("nhanvien") NhanVien nv, BindingResult result, Model model) {
+         if (result.hasErrors()) {
+             model.addAttribute("listnv", nhanVienRepository.getAllNhanVien());
+             return "/asm/add-nv";
+@@ -308,7 +308,7 @@
+     }
+ 
+     @PostMapping("/updatenv/{id}")
+-    public String updatenv(@PathVariable Integer id, nhanvien nv) {
++    public String updatenv(@PathVariable Integer id, NhanVien nv) {
+         nhanVienRepository.updateNhanVien(id,nv);
+         return "redirect:/asm/ht-nv";
+     }
+Index: src/test/java/com/example/asmgd1/Service/NhanVienServiceTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import static org.junit.jupiter.api.Assertions.*;\r\nclass NhanVienServiceTest {\r\n  \r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/test/java/com/example/asmgd1/Service/NhanVienServiceTest.java b/src/test/java/com/example/asmgd1/Service/NhanVienServiceTest.java
+--- a/src/test/java/com/example/asmgd1/Service/NhanVienServiceTest.java	(revision de35ee53001e128e9a35ca94eb32bbc32e324bda)
++++ b/src/test/java/com/example/asmgd1/Service/NhanVienServiceTest.java	(date 1732930953229)
+@@ -1,4 +1,521 @@
++package com.example.asmgd1.Service;
++
++import com.example.asmgd1.asm.model.NhanVien;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++
++import java.util.List;
++
+ import static org.junit.jupiter.api.Assertions.*;
++
+ class NhanVienServiceTest {
+-  
+-}
+\ No newline at end of file
++        NhanVienService service ;
++        String  expected, actual;;
++        @BeforeEach
++        void setUp() {
++            service  = new NhanVienService();
++            service.addNhanVien(new NhanVien(1, "Nguyen Van A", "NV01", "nva", "123456", true));
++            service.addNhanVien(new NhanVien(2, "Nguyen Thi B", "NV02", "ntb", "abcdef", true));
++        }
++
++        @AfterEach
++        void tearDown() {
++            service = null;
++        }
++
++        //Thêm Nhân Viên thành công
++        @Test
++        void addNhanVien_successful() {
++            NhanVien nv = new NhanVien(3, "Nguyen Van A", "NV01", "nva", "123456", true);
++            expected = "Thêm nhân viên thành công";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công với tên nhân viên null
++        @Test
++        void addNhanVien_missingName() {
++            NhanVien nv = new NhanVien(4, null, "NV02", "nvb", "password", true);
++            expected = "Tên nhân viên không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công với tên nhân viên để trống
++        @Test
++        void addNhanVien_emptyName() {
++            NhanVien nv = new NhanVien(5, "", "NV03", "nvc", "password", true);
++            expected = "Tên nhân viên không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công do trường mã nhân viên null
++        @Test
++        void addNhanVien_missingCode() {
++            NhanVien nv = new NhanVien(6, "Nguyen Van D", null, "nvd", "password", true);
++            expected = "Mã nhân viên không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        //Thêm nhân viên không thành công với trường mã nhân viên để trống và các trường còn lại hợp lệ
++        @Test
++        void addNhanVien_emptyCode() {
++            NhanVien nv = new NhanVien(7, "Nguyen Van E", "", "nve", "password", true);
++            expected = "Mã nhân viên không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công với trường tên đăng nhập null và các trường còn lại hợp lệ
++        @Test
++        void addNhanVien_missingUsername() {
++            NhanVien nv = new NhanVien(8, "Nguyen Van F", "NV06", null, "password", true);
++            expected = "Tên đăng nhập không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++        // Thêm nhân viên không thành công với trường tên đăng nhập bỏ trống và các trường còn lại hợp lệ
++        @Test
++        void addNhanVien_emptyUsername() {
++            NhanVien nv = new NhanVien(9, "Nguyen Van G", "NV07", "", "password", true);
++            expected = "Tên đăng nhập không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công với trường mật khẩu null và các trường còn lại hợp lệ
++        @Test
++        void addNhanVien_missingPassword() {
++            NhanVien nv = new NhanVien(10, "Nguyen Van H", "NV08", "nvh", null, true);
++            expected = "Mật khẩu không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công với trường mật khẩu bỏ trống và các trường còn lại hợp lệ
++        @Test
++        void addNhanVien_emptyPassword() {
++            NhanVien nv = new NhanVien(11, "Nguyen Van I", "NV09", "nvi", "", true);
++            expected = "Mật khẩu không được để trống";
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++
++        // Thêm nhân viên không thành công do ID đã tồn tại
++        @Test
++        void addNhanVien_duplicateId() {
++            NhanVien nv = new NhanVien(3, "Nguyen Van K", "NV11", "nvk", "123456", true);  // Same ID
++            expected = "Thêm nhân viên không thành công id đã tồn tại "; // Chưa kiểm tra trùng ID trong logic mẫu
++            actual = service.addNhanVien(nv);
++            assertEquals(expected, actual);
++        }
++
++        //Done TestThem
++
++
++
++
++        // Sua
++        @Test
++        void updateNhanVien_validData() {
++            NhanVien nv = new NhanVien(1, "Nguyen Van A", "NV01", "nva", "123456", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(1, "Nguyen Van A Updated", "NV01", "nva_updated", "654321", false);
++            expected = "Cập nhật nhân viên thành công";
++            actual = service.updateNhanVien(1, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_invalidName() {
++            NhanVien nv = new NhanVien(2, "Nguyen Van B", "NV02", "nvb", "123456", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(2, "", "NV02", "nvb", "654321", true);
++            expected = "Tên nhân viên không được để trống";
++            actual = service.updateNhanVien(2, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_invalidCode() {
++            NhanVien nv = new NhanVien(3, "Nguyen Van C", "NV03", "nvc", "123456", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(3, "Nguyen Van C", "", "nvc", "654321", true);
++            expected = "Mã nhân viên không được để trống";
++            actual = service.updateNhanVien(3, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_missingEmployee() {
++            NhanVien updatedInfo = new NhanVien(99, "Nguyen Van D", "NV99", "nvd", "123456", true);
++            expected = "Không tìm thấy nhân viên với ID 99";
++            actual = service.updateNhanVien(99, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_invalidUsername() {
++            NhanVien nv = new NhanVien(4, "Nguyen Van E", "NV04", "nve", "password", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(4, "Nguyen Van E", "NV04", "", "654321", true);
++            expected = "Tên đăng nhập không được để trống";
++            actual = service.updateNhanVien(4, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_invalidPassword() {
++            NhanVien nv = new NhanVien(5, "Nguyen Van F", "NV05", "nvf", "123456", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(5, "Nguyen Van F", "NV05", "nvf", "", true);
++            expected = "Mật khẩu không được để trống";
++            actual = service.updateNhanVien(5, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_toggleStatus() {
++            NhanVien nv = new NhanVien(6, "Nguyen Van G", "NV06", "nvg", "password", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(6, "Nguyen Van G", "NV06", "nvg", "password", false);
++            expected = "Cập nhật nhân viên thành công";
++            actual = service.updateNhanVien(6, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_checkStatusChange() {
++            NhanVien nv = new NhanVien(7, "Nguyen Van H", "NV07", "nvh", "123456", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(7, "Nguyen Van H", "NV07", "nvh", "123456", false);
++            service.updateNhanVien(7, updatedInfo);
++
++            // After update, the status should be false
++            assertFalse(service.findById(7).isTrangThai());
++        }
++
++        @Test
++        void updateNhanVien_sameDataNoChange() {
++            NhanVien nv = new NhanVien(8, "Nguyen Van I", "NV08", "nvi", "654321", true);
++            service.addNhanVien(nv);  // Add initial employee
++
++            NhanVien updatedInfo = new NhanVien(8, "Nguyen Van I", "NV08", "nvi", "654321", true); // No change
++            expected = "Dữ liệu không thay đổi";
++            actual = service.updateNhanVien(8, updatedInfo);
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void updateNhanVien_invalidId() {
++            NhanVien updatedInfo = new NhanVien(0, "Nguyen Van J", "NV09", "nvj", "password", true);
++            expected = "ID không hợp lệ";
++            actual = service.updateNhanVien(0, updatedInfo);
++            assertEquals(expected, actual);
++        }
++        // Done update
++
++
++
++
++
++
++
++        //Xoa Min 1 Max 2
++        @Test
++        void deleteNhanVien_existingEmployee() {
++            expected = "Xóa nhân viên thành công";
++            actual = service.deleteNhanVien(1);  // Xóa nhân viên với ID = 1
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_nonExistingEmployee() {
++            expected = "Không tìm thấy nhân viên với ID 999";
++            actual = service.deleteNhanVien(999);  // Xóa nhân viên không tồn tại
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_multipleDelete() {
++            service.deleteNhanVien(1);  // Xóa nhân viên ID = 1
++            expected = "Không tìm thấy nhân viên với ID 1";
++            actual = service.deleteNhanVien(1);  // Thử xóa lại nhân viên ID = 1
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_firstEmployee() {
++            expected = "Xóa nhân viên thành công";
++            actual = service.deleteNhanVien(1);  // Xóa nhân viên đầu tiên
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_lastEmployee() {
++            expected = "Xóa nhân viên thành công";
++            actual = service.deleteNhanVien(2);  // Xóa nhân viên cuối cùng
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_emptyList() {
++            service.deleteNhanVien(1);  // Xóa nhân viên đầu tiên
++            service.deleteNhanVien(2);  // Xóa nhân viên cuối cùng
++            expected = "Không tìm thấy nhân viên với ID 1";
++            actual = service.deleteNhanVien(1);  // Thử xóa khi danh sách đã trống
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_noEmployeeInList() {
++            service.deleteNhanVien(1);  // Xóa nhân viên đầu tiên
++            expected = "Không tìm thấy nhân viên với ID 2";
++            actual = service.deleteNhanVien(2);  // Thử xóa nhân viên không tồn tại trong danh sách
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_checkListSize() {
++            service.deleteNhanVien(1);  // Xóa nhân viên với ID = 1
++            service.deleteNhanVien(2);  // Xóa nhân viên với ID = 2
++            assertTrue(service.getAllNhanVien().isEmpty());  // Kiểm tra danh sách đã trống
++        }
++
++        @Test
++        void deleteNhanVien_checkRemainingAfterDelete() {
++            service.deleteNhanVien(1);  // Xóa nhân viên với ID = 1
++            expected = "Xóa nhân viên thành công";
++            actual = service.deleteNhanVien(2);  // Xóa nhân viên với ID = 2
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++
++        @Test
++        void deleteNhanVien_checkDeleteEffectiveness() {
++            expected = "Xóa nhân viên thành công";
++            actual = service.deleteNhanVien(1);  // Xóa nhân viên với ID = 1
++            assertEquals(expected, actual);  // Kiểm tra kết quả
++        }
++        //Done delete
++
++
++
++
++        // Hiển thị danh sách
++        @Test
++        void getAllNhanVien_emptyList() {
++            service.deleteNhanVien(1);  // Xóa nhân viên với ID = 1
++            service.deleteNhanVien(2);  // Xóa nhân viên với ID = 2
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách nhân viên
++            assertTrue(actual.isEmpty());  // Kiểm tra nếu danh sách trống
++        }
++
++
++        @Test
++        void getAllNhanVien_twoEmployees() {
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách với 2 nhân viên
++            assertEquals(2, actual.size());  // Kiểm tra số lượng nhân viên
++            assertTrue(actual.stream().anyMatch(nv -> nv.getTennv().equals("Nguyen Van A")));  // Kiểm tra nếu có nhân viên "Nguyen Van A"
++            assertTrue(actual.stream().anyMatch(nv -> nv.getTennv().equals("Nguyen Thi B")));  // Kiểm tra nếu có nhân viên "Nguyen Thi B"
++        }
++
++
++
++        @Test
++        void getAllNhanVien_checkEmployeeOrder() {
++            service.addNhanVien(new NhanVien(3, "Tran Thi C", "NV03", "ttc", "123123", true));  // Thêm nhân viên
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy tất cả nhân viên
++            assertEquals("Nguyen Van A", actual.get(0).getTennv());  // Kiểm tra nhân viên đầu tiên trong danh sách là "Nguyen Van A"
++        }
++
++
++        @Test
++        void getAllNhanVien_checkMultipleEmployees() {
++            service.addNhanVien(new NhanVien(3, "Tran Thi C", "NV03", "ttc", "123123", true));  // Thêm nhân viên
++            service.addNhanVien(new NhanVien(4, "Le Thi E", "NV04", "lte", "qwerty", true));  // Thêm nhân viên
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy tất cả nhân viên
++            assertTrue(actual.size() > 2);  // Kiểm tra nếu có ít nhất 3 nhân viên
++        }
++
++        @Test
++        void getAllNhanVien_checkEmployeePresenceInList() {
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách tất cả nhân viên
++            assertTrue(actual.stream().anyMatch(nv -> nv.getTennv().equals("Nguyen Van A")));  // Kiểm tra xem nhân viên "Nguyen Van A" có trong danh sách không
++        }
++
++        @Test
++        void getAllNhanVien_checkEmployeeNotPresent() {
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách tất cả nhân viên
++            assertFalse(actual.stream().anyMatch(nv -> nv.getTennv().equals("Nguyen Thi X")));  // Kiểm tra xem nhân viên "Nguyen Thi X" có trong danh sách không
++        }
++
++        @Test
++        void getAllNhanVien_checkForNewEmployee() {
++            service.addNhanVien(new NhanVien(5, "Pham Thi F", "NV05", "ptf", "xyz123", true));  // Thêm nhân viên mới
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách nhân viên
++            assertTrue(actual.stream().anyMatch(nv -> nv.getTennv().equals("Pham Thi F")));  // Kiểm tra xem nhân viên "Pham Thi F" có trong danh sách
++        }
++
++        @Test
++        void getAllNhanVien_checkEmployeeOrderAfterDeletion() {
++            service.deleteNhanVien(2);  // Xóa nhân viên với ID = 2
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách nhân viên
++            assertEquals("Nguyen Van A", actual.get(0).getTennv());  // Kiểm tra nếu nhân viên đầu tiên trong danh sách là "Nguyen Van A"
++            assertEquals("Nguyen Thi B", actual.get(1).getTennv());  // Kiểm tra nếu nhân viên thứ hai là "Nguyen Thi B"
++        }
++
++        @Test
++        void getAllNhanVien_checkEmployeeCountAfterAddition() {
++            service.addNhanVien(new NhanVien(3, "Le Thi G", "NV06", "ltg", "qwerty", true));  // Thêm một nhân viên
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách nhân viên
++            assertEquals(3, actual.size());  // Kiểm tra số lượng nhân viên sau khi thêm mới
++        }
++
++        @Test
++        void getAllNhanVien_checkListAfterClear() {
++            service.deleteNhanVien(1);  // Xóa nhân viên với ID = 1
++            service.deleteNhanVien(2);  // Xóa nhân viên với ID = 2
++            List<NhanVien> actual = service.getAllNhanVien();  // Lấy danh sách nhân viên
++            assertTrue(actual.isEmpty());  // Kiểm tra nếu danh sách trống sau khi xóa tất cả nhân viên
++        }
++
++        // Done hiển thị
++
++
++
++
++        // Tìm kiếm
++        @Test
++        void testGetNhanVienById_existingId() {
++            NhanVien actualNhanVien = service.getNhanVienById(1);
++            expected = "Nguyen Van A";
++            assertNotNull(actualNhanVien);
++            actual = actualNhanVien.getTennv();
++            assertEquals(expected, actual);
++        }
++
++        @Test
++        void testGetNhanVienById_nonExistingId() {
++            NhanVien actualNhanVien = service.getNhanVienById(4);
++            expected = null;
++            assertNull(actualNhanVien);
++        }
++
++        @Test
++        void testGetNhanVienById_checkInactiveEmployee() {
++            NhanVien actualNhanVien = service.getNhanVienById(3);
++            expected = "Tran Thi C";
++            assertNotNull(actualNhanVien);
++            actual = actualNhanVien.getTennv();
++            assertEquals(expected, actual);
++            assertFalse(actualNhanVien.isTrangThai());
++        }
++
++        @Test
++        void testGetNhanVienById_checkAfterDelete() {
++            service.deleteNhanVien(1);
++            NhanVien actualNhanVien = service.getNhanVienById(1);
++            expected = null;
++            assertNull(actualNhanVien);
++        }
++
++        // Test case tìm kiếm theo tên
++        @Test
++        void testGetNhanVienById_invalidId() {
++            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
++                service.getNhanVienById(-1);  // Thử với ID không hợp lệ
++            });
++            assertEquals("ID phải là một số dương.", exception.getMessage());
++        }
++
++        @Test
++        void testGetNhanVienByName_invalidName_empty() {
++            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
++                service.getNhanVienByName("");  // Thử với tên rỗng
++            });
++            assertEquals("Tên không được để trống.", exception.getMessage());
++        }
++
++        @Test
++        void testGetNhanVienByName_invalidName_numbers() {
++            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
++                service.getNhanVienByName("123456");  // Thử với tên là số
++            });
++            assertEquals("Tên không thể chứa toàn bộ số.", exception.getMessage());
++        }
++
++        @Test
++        void testGetNhanVienById_validId() {
++            NhanVien actual = service.getNhanVienById(1);  // Tìm kiếm nhân viên có ID = 1
++            assertNotNull(actual);  // Kiểm tra xem nhân viên có được tìm thấy không
++            assertEquals("Nguyen Van A", actual.getTennv());  // Kiểm tra tên nhân viên
++        }
++
++        @Test
++        void testGetNhanVienById_notFound() {
++            NhanVien actual = service.getNhanVienById(999);  // Tìm kiếm nhân viên không tồn tại
++            assertNull(actual);  // Kiểm tra kết quả trả về là null (không tìm thấy nhân viên)
++        }
++
++
++        @Test
++        void testGetNhanVienByName_validName() {
++            List<NhanVien> actual = service.getNhanVienByName("Nguyen Thi B");  // Tìm kiếm nhân viên có tên "Nguyen Thi B"
++            assertNotNull(actual);  // Kiểm tra danh sách không null
++            assertEquals(1, actual.size());  // Kiểm tra chỉ có 1 nhân viên trong danh sách
++            assertEquals("Nguyen Thi B", actual.get(0).getTennv());  // Kiểm tra tên nhân viên
++        }
++
++
++        @Test
++        void testGetNhanVienByName_notFound() {
++            List<NhanVien> actual = service.getNhanVienByName("Nguyen Thi C");  // Tìm kiếm nhân viên không tồn tại
++            assertTrue(actual.isEmpty());  // Kiểm tra kết quả trả về là danh sách rỗng
++        }
++
++
++
++        @Test
++        void testGetNhanVienByName_ignoreCase() {
++            List<NhanVien> actual = service.getNhanVienByName("nguyen thi b");  // Tìm kiếm nhân viên với tên viết thường
++            assertNotNull(actual);  // Kiểm tra danh sách không null
++            assertEquals(1, actual.size());  // Kiểm tra chỉ có 1 nhân viên trong danh sách
++            assertEquals("Nguyen Thi B", actual.get(0).getTennv());  // Kiểm tra tên nhân viên
++        }
++
++        @Test
++        void testGetNhanVienByName_emptyName() {
++            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
++                service.getNhanVienByName("");  // Tìm kiếm với tên rỗng
++            });
++            assertEquals("Tên không được để trống.", exception.getMessage());
++        }
++
++        @Test
++        void testGetNhanVienByName_nameIsNumber() {
++            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
++                service.getNhanVienByName("12345");  // Tìm kiếm với tên chỉ chứa số
++            });
++            assertEquals("Tên không thể chứa toàn bộ số.", exception.getMessage());
++        }
++
++    }
+\ No newline at end of file
+Index: src/main/java/com/example/asmgd1/asm/Repository/NhanVienRepository.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.asmgd1.asm.Repository;\r\n\r\nimport com.example.asmgd1.asm.model.khachhang;\r\nimport com.example.asmgd1.asm.model.nhanvien;\r\nimport org.springframework.data.jpa.repository.JpaRepository;\r\nimport org.springframework.data.jpa.repository.Query;\r\n\r\nimport java.util.ArrayList;\r\n\r\npublic interface NhanVienRepository extends JpaRepository<nhanvien, Integer> {\r\n    @Query(nativeQuery = true,\r\n            value =\"SELECT * FROM nhanvien x WHERE  x.id LIKE %:id%\")\r\n    ArrayList<nhanvien> searchBynv(Integer id);\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/com/example/asmgd1/asm/Repository/NhanVienRepository.java b/src/main/java/com/example/asmgd1/asm/Repository/NhanVienRepository.java
+--- a/src/main/java/com/example/asmgd1/asm/Repository/NhanVienRepository.java	(revision de35ee53001e128e9a35ca94eb32bbc32e324bda)
++++ b/src/main/java/com/example/asmgd1/asm/Repository/NhanVienRepository.java	(date 1732930784857)
+@@ -1,14 +1,13 @@
+ package com.example.asmgd1.asm.Repository;
+ 
+-import com.example.asmgd1.asm.model.khachhang;
+-import com.example.asmgd1.asm.model.nhanvien;
++import com.example.asmgd1.asm.model.NhanVien;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ import org.springframework.data.jpa.repository.Query;
+ 
+ import java.util.ArrayList;
+ 
+-public interface NhanVienRepository extends JpaRepository<nhanvien, Integer> {
++public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
+     @Query(nativeQuery = true,
+             value ="SELECT * FROM nhanvien x WHERE  x.id LIKE %:id%")
+-    ArrayList<nhanvien> searchBynv(Integer id);
++    ArrayList<NhanVien> searchBynv(Integer id);
+ }
+Index: asmgd1.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule=\"true\" type=\"JAVA_MODULE\" version=\"4\">\r\n  <component name=\"FacetManager\">\r\n    <facet type=\"web\" name=\"Web\">\r\n      <configuration>\r\n        <webroots />\r\n        <sourceRoots>\r\n          <root url=\"file://$MODULE_DIR$/src/main/java\" />\r\n          <root url=\"file://$MODULE_DIR$/src/main/resources\" />\r\n        </sourceRoots>\r\n      </configuration>\r\n    </facet>\r\n    <facet type=\"jpa\" name=\"JPA\">\r\n      <configuration>\r\n        <setting name=\"validation-enabled\" value=\"true\" />\r\n        <setting name=\"provider-name\" value=\"Hibernate\" />\r\n        <datasource-mapping />\r\n        <naming-strategy-map />\r\n      </configuration>\r\n    </facet>\r\n    <facet type=\"Spring\" name=\"Spring\">\r\n      <configuration />\r\n    </facet>\r\n  </component>\r\n  <component name=\"NewModuleRootManager\" LANGUAGE_LEVEL=\"JDK_15\">\r\n    <output url=\"file://$MODULE_DIR$/target/classes\" />\r\n    <output-test url=\"file://$MODULE_DIR$/target/test-classes\" />\r\n    <content url=\"file://$MODULE_DIR$\">\r\n      <sourceFolder url=\"file://$MODULE_DIR$/src/main/java\" isTestSource=\"false\" />\r\n      <sourceFolder url=\"file://$MODULE_DIR$/src/main/resources\" type=\"java-resource\" />\r\n      <sourceFolder url=\"file://$MODULE_DIR$/src/test/java\" isTestSource=\"true\" />\r\n      <excludeFolder url=\"file://$MODULE_DIR$/target\" />\r\n    </content>\r\n    <orderEntry type=\"inheritedJdk\" />\r\n    <orderEntry type=\"sourceFolder\" forTests=\"false\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-web:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-logging:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: ch.qos.logback:logback-classic:1.5.8\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: ch.qos.logback:logback-core:1.5.8\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.logging.log4j:log4j-to-slf4j:2.23.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.logging.log4j:log4j-api:2.23.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.slf4j:jul-to-slf4j:2.0.16\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.annotation:jakarta.annotation-api:2.1.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.yaml:snakeyaml:2.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-json:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml.jackson.core:jackson-databind:2.17.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml.jackson.core:jackson-annotations:2.17.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml.jackson.core:jackson-core:2.17.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.17.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml.jackson.module:jackson-module-parameter-names:2.17.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-tomcat:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.tomcat.embed:tomcat-embed-websocket:10.1.30\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-web:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-beans:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: io.micrometer:micrometer-observation:1.13.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: io.micrometer:micrometer-commons:1.13.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-webmvc:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-aop:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-context:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-expression:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: org.springframework.boot:spring-boot-devtools:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-autoconfigure:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.projectlombok:lombok:1.18.34\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.springframework.boot:spring-boot-starter-test:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.springframework.boot:spring-boot-test:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.springframework.boot:spring-boot-test-autoconfigure:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: com.jayway.jsonpath:json-path:2.9.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.slf4j:slf4j-api:2.0.16\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: jakarta.xml.bind:jakarta.xml.bind-api:4.0.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: jakarta.activation:jakarta.activation-api:2.1.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: net.minidev:json-smart:2.5.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: net.minidev:accessors-smart:2.5.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.ow2.asm:asm:9.6\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.assertj:assertj-core:3.25.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: net.bytebuddy:byte-buddy:1.14.19\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.awaitility:awaitility:4.2.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.hamcrest:hamcrest:2.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.junit.jupiter:junit-jupiter:5.10.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.junit.jupiter:junit-jupiter-api:5.10.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.opentest4j:opentest4j:1.3.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.junit.platform:junit-platform-commons:1.10.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.apiguardian:apiguardian-api:1.1.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.junit.jupiter:junit-jupiter-params:5.10.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.junit.jupiter:junit-jupiter-engine:5.10.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.junit.platform:junit-platform-engine:1.10.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.mockito:mockito-core:5.11.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: net.bytebuddy:byte-buddy-agent:1.14.19\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.objenesis:objenesis:3.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.mockito:mockito-junit-jupiter:5.11.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.skyscreamer:jsonassert:1.5.3\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: com.vaadin.external.google:android-json:0.0.20131108.vaadin1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-core:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-jcl:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.springframework:spring-test:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"TEST\" name=\"Maven: org.xmlunit:xmlunit-core:2.9.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.tomcat.embed:tomcat-embed-jasper:10.1.30\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.tomcat.embed:tomcat-embed-core:10.1.30\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.tomcat:tomcat-annotations-api:10.1.30\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.apache.tomcat.embed:tomcat-embed-el:10.1.30\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.eclipse.jdt:ecj:3.33.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api:3.0.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.servlet:jakarta.servlet-api:6.0.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.el:jakarta.el-api:5.0.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.glassfish.web:jakarta.servlet.jsp.jstl:3.0.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-validation:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.hibernate.validator:hibernate-validator:8.0.1.Final\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.validation:jakarta.validation-api:3.0.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.jboss.logging:jboss-logging:3.5.3.Final\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.fasterxml:classmate:1.7.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.microsoft.sqlserver:mssql-jdbc:9.4.1.jre16\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-data-jpa:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-aop:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.aspectj:aspectjweaver:1.9.22.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.boot:spring-boot-starter-jdbc:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: com.zaxxer:HikariCP:5.1.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-jdbc:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.hibernate.orm:hibernate-core:6.5.3.Final\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.persistence:jakarta.persistence-api:3.1.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: jakarta.transaction:jakarta.transaction-api:2.0.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: org.hibernate.common:hibernate-commons-annotations:6.0.6.Final\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: io.smallrye:jandex:3.1.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: org.glassfish.jaxb:jaxb-runtime:4.0.5\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: org.glassfish.jaxb:jaxb-core:4.0.5\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: org.eclipse.angus:angus-activation:2.0.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: org.glassfish.jaxb:txw2:4.0.5\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: com.sun.istack:istack-commons-runtime:4.1.2\" level=\"project\" />\r\n    <orderEntry type=\"library\" scope=\"RUNTIME\" name=\"Maven: jakarta.inject:jakarta.inject-api:2.0.1\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.antlr:antlr4-runtime:4.13.0\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.data:spring-data-jpa:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework.data:spring-data-commons:3.3.4\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-orm:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-tx:6.1.13\" level=\"project\" />\r\n    <orderEntry type=\"library\" name=\"Maven: org.springframework:spring-aspects:6.1.13\" level=\"project\" />\r\n  </component>\r\n</module>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/asmgd1.iml b/asmgd1.iml
+--- a/asmgd1.iml	(revision de35ee53001e128e9a35ca94eb32bbc32e324bda)
++++ b/asmgd1.iml	(date 1732928656359)
+@@ -14,7 +14,9 @@
+       <configuration>
+         <setting name="validation-enabled" value="true" />
+         <setting name="provider-name" value="Hibernate" />
+-        <datasource-mapping />
++        <datasource-mapping>
++          <factory-entry name="asmgd1" />
++        </datasource-mapping>
+         <naming-strategy-map />
+       </configuration>
+     </facet>

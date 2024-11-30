@@ -262,7 +262,7 @@ public class trangchuController {
 
     @GetMapping("/searchnv")
     public String searchnv(@RequestParam("id") Integer id,Model model){
-        List<nhanvien> resultnv=nhanVienRepository.findNhanviensByid(id);
+        List<NhanVien> resultnv=nhanVienRepository.findNhanviensByid(id);
         model.addAttribute("listnv", resultnv);
         return "/asm/hienthi-nv";
 
@@ -276,13 +276,13 @@ public class trangchuController {
 
     @GetMapping("/addnv")
     public String addnv(Model model) {
-        model.addAttribute("nhanvien", new nhanvien());
+        model.addAttribute("nhanvien", new NhanVien());
         return "/asm/add-nv";
     }
 
     @PostMapping("/addnv")
     public String addnv(
-            @Valid @ModelAttribute("nhanvien") nhanvien nv, BindingResult result, Model model) {
+            @Valid @ModelAttribute("nhanvien") NhanVien nv, BindingResult result, Model model) {
         if (result.hasErrors()) {
             model.addAttribute("listnv", nhanVienRepository.getAllNhanVien());
             return "/asm/add-nv";
@@ -308,7 +308,7 @@ public class trangchuController {
     }
 
     @PostMapping("/updatenv/{id}")
-    public String updatenv(@PathVariable Integer id, nhanvien nv) {
+    public String updatenv(@PathVariable Integer id, NhanVien nv) {
         nhanVienRepository.updateNhanVien(id,nv);
         return "redirect:/asm/ht-nv";
     }
