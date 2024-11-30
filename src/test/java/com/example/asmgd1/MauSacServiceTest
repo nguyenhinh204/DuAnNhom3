@@ -1,0 +1,428 @@
+package com.example.asmgd1.Service;
+
+import com.example.asmgd1.asm.Repository.*;
+import com.example.asmgd1.asm.model.mausac;
+
+
+
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+@SpringBootTest
+@Transactional
+@Rollback
+class MauSacServiceTest {
+    @Autowired
+    private MauSacService mauSacService;
+    @Autowired
+    private MauSacRepository mauSacRepository;
+
+
+    @BeforeEach
+    void setUp() {
+    }
+
+    @AfterEach
+    void tearDown() {
+    }
+
+    @Test
+    void getAllMauSac_Size() {
+        mausac mausac1 = new mausac();
+        mausac1.setMams("M001");
+        mausac1.setTenms("Red");
+        mausac1.setTrangThai(true);
+        mauSacRepository.save(mausac1);
+
+        mausac mausac2 = new mausac();
+        mausac2.setMams("M002");
+        mausac2.setTenms("Blue");
+        mausac2.setTrangThai(true);
+        mauSacRepository.save(mausac2);
+
+        List<mausac> mausacs = mauSacRepository.findAll();
+        assertFalse(mausacs.isEmpty(), "Danh sách không được rỗng khi có dữ liệu");
+        assertEquals(2, mausacs.size());
+    }
+    @Test
+    void testGetAllMausac_NotNull() {
+        List<mausac> mausacs = mauSacRepository.findAll();
+        assertNotNull(mausacs, "Danh sách không được null.");
+    }
+
+    @Test
+    void testGetAllMausac_ValidData() {
+        List<mausac> mausacs = mauSacRepository.findAll();
+        mausac mausac = mausacs.get(0);
+        assertNotNull(mausac.getMams(), "Mã màu không được null.");
+        assertNotNull(mausac.getTenms(), "Tên màu không được null.");
+    }
+
+    @Test
+    void testGetAllMausac_ZeroTrangThai() {
+        List<mausac> mausacs = mauSacRepository.findAll();
+        for (mausac mausac : mausacs) {
+            assertTrue(mausac.isTrangThai() == true, "Trạng thái không đúng.");
+        }
+    }
+
+    @Test
+    void testGetAllMausac_Duplicate() {
+        mausac mausac1 = new mausac();
+        mausac1.setMams("M003");
+        mausac1.setTenms("Green");
+        mausac1.setTrangThai(true);
+        mauSacRepository.save(mausac1);
+
+        mausac mausac2 = new mausac();
+        mausac2.setMams("M003");
+        mausac2.setTenms("Green");
+        mausac2.setTrangThai(true);
+        mauSacRepository.save(mausac2);
+
+        List<mausac> mausacs = mauSacRepository.findAll();
+        assertEquals(2, mausacs.size(), "Danh sách phải chứa bản ghi trùng.");
+    }
+
+    @Test
+    void getMauSacById_ValidId() {
+        mausac mausac = new mausac();
+        mausac.setMams("M001");
+        mausac.setTenms("Red");
+        mausac.setTrangThai(true);
+        mauSacRepository.save(mausac);
+
+        // Retrieve the Mausac entity by ID
+        Optional<mausac> retrievedMausac = mauSacRepository.findById(mausac.getId());
+
+        assertTrue(retrievedMausac.isPresent(), "Màu sắc không tìm thấy");
+        assertEquals("M001", retrievedMausac.get().getMams(), "Mã màu không đúng");
+        assertEquals("Red", retrievedMausac.get().getTenms(), "Tên màu không đúng");
+    }
+    @Test
+    void getMauSacById_NonExistentId() {
+        // Try to retrieve a non-existent Mausac entity by an ID
+        Optional<mausac> retrievedMausac = mauSacRepository.findById(999);  // assuming this ID doesn't exist
+
+        assertFalse(retrievedMausac.isPresent(), "Màu sắc phải không tồn tại");
+    }
+
+    @Test
+    void getMauSacById_NullId() {
+        // Try to retrieve Mausac entity with a null ID
+        assertThrows(IllegalArgumentException.class, () -> {
+            mauSacRepository.findById(null);  // Should throw an exception for null ID
+        }, "ID không thể là null");
+    }
+
+    @Test
+    void getMauSacById_EmptyResult() {
+        // Try to retrieve a Mausac entity with an ID that doesn't exist
+        Optional<mausac> retrievedMausac = mauSacRepository.findById(1000);  // assuming this ID doesn't exist
+
+        assertFalse(retrievedMausac.isPresent(), "Danh sách phải rỗng khi không tìm thấy màu sắc");
+    }
+
+    @Test
+    void getMauSacById_ValidIdProperties() {
+        // Create and save a valid Mausac entity
+        mausac mausac = new mausac();
+        mausac.setMams("M002");
+        mausac.setTenms("Blue");
+        mausac.setTrangThai(false);
+        mauSacRepository.save(mausac);
+
+        // Retrieve the Mausac entity by ID
+        Optional<mausac> retrievedMausac = mauSacRepository.findById(mausac.getId());
+
+        assertTrue(retrievedMausac.isPresent(), "Màu sắc không tìm thấy");
+        assertEquals("M002", retrievedMausac.get().getMams(), "Mã màu không đúng");
+        assertEquals("Blue", retrievedMausac.get().getTenms(), "Tên màu không đúng");
+        assertFalse(retrievedMausac.get().isTrangThai(), "Trạng thái không đúng");
+    }
+
+    @Test
+    void createMauSac_ValidData() {
+        mausac mausac = new mausac();
+        mausac.setMams("M001");
+        mausac.setTenms("Red");
+        mausac.setTrangThai(true);
+
+        // Save the Mausac object to the repository
+        mausac = mauSacRepository.save(mausac);
+
+        // Retrieve the created Mausac entity and check the saved data
+        mausac createdMausac = mauSacRepository.findById(mausac.getId()).orElse(null);
+
+        assertNotNull(createdMausac, "Màu sắc phải được lưu thành công");
+        assertEquals("M001", createdMausac.getMams(), "Mã màu không đúng");
+        assertEquals("Red", createdMausac.getTenms(), "Tên màu không đúng");
+        assertTrue(createdMausac.isTrangThai(), "Trạng thái không đúng");
+    }
+    @Test
+    void createMauSac_MissingMams() {
+        // Create a Mausac object with missing 'mams' (blank)
+        mausac mausac = new mausac();
+        mausac.setMams("");  // Invalid, as 'mams' should not be blank
+        mausac.setTenms("Green");
+        mausac.setTrangThai(true);
+
+        // Try saving the Mausac object and expect a validation exception
+        assertThrows(javax.validation.ConstraintViolationException.class, () -> {
+            mauSacRepository.save(mausac);
+        }, "Mã màu không được để trống");
+    }
+    @Test
+    void createMauSac_MissingTenms() {
+        // Create a Mausac object with missing 'tenms' (blank)
+        mausac mausac = new mausac();
+        mausac.setMams("M002");
+        mausac.setTenms("");  // Invalid, as 'tenms' should not be blank
+        mausac.setTrangThai(true);
+
+        // Try saving the Mausac object and expect a validation exception
+        assertThrows(javax.validation.ConstraintViolationException.class, () -> {
+            mauSacRepository.save(mausac);
+        }, "Tên màu không được để trống");
+    }
+    @Test
+    void createMauSac_InvalidMams() {
+        // Create a Mausac object with an invalid 'mams' (e.g., too long or invalid format)
+        mausac mausac = new mausac();
+        mausac.setMams("M001TooLongMams");  // Invalid if 'mams' has a length limit
+        mausac.setTenms("Blue");
+        mausac.setTrangThai(true);
+
+        // Try saving the Mausac object and expect a validation exception if 'mams' exceeds length limit
+        assertThrows(javax.validation.ConstraintViolationException.class, () -> {
+            mauSacRepository.save(mausac);
+        }, "Mã màu không hợp lệ");
+    }
+    @Test
+    void createMauSac_DuplicateMams() {
+        // Create and save the first Mausac
+        mausac mausac1 = new mausac();
+        mausac1.setMams("M003");
+        mausac1.setTenms("Yellow");
+        mausac1.setTrangThai(true);
+        mauSacRepository.save(mausac1);
+
+        // Create another Mausac with the same 'mams' value
+        mausac mausac2 = new mausac();
+        mausac2.setMams("M003");  // Duplicate 'mams'
+        mausac2.setTenms("Yellow");
+        mausac2.setTrangThai(true);
+
+        // Try saving the second Mausac and expect a database constraint violation due to duplicate 'mams'
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> {
+            mauSacRepository.save(mausac2);
+        }, "Mã màu không được trùng lặp");
+    }
+
+
+
+
+
+    @Test
+    void updateMauSac_ValidData() {
+        mausac mausac = new mausac();
+        mausac.setMams("M004");
+        mausac.setTenms("Purple");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Now, update the Mausac data
+        mausac.setTenms("Dark Purple");
+        mausac.setTrangThai(false);
+
+        // Save the updated Mausac
+        mausac = mauSacRepository.save(mausac);
+
+        // Retrieve the updated Mausac and assert that the fields were updated
+        mausac updatedMausac = mauSacRepository.findById(mausac.getId()).orElse(null);
+
+        assertNotNull(updatedMausac, "Màu sắc phải được cập nhật");
+        assertEquals("Dark Purple", updatedMausac.getTenms(), "Tên màu không đúng sau khi cập nhật");
+        assertFalse(updatedMausac.isTrangThai(), "Trạng thái không đúng sau khi cập nhật");
+    }
+    @Test
+    void updateMauSac_DuplicateMams() {
+        // First, create and save two valid Mausac entities
+        mausac mausac1 = new mausac();
+        mausac1.setMams("M007");
+        mausac1.setTenms("Yellow");
+        mausac1.setTrangThai(true);
+        mauSacRepository.save(mausac1);
+
+        mausac mausac2 = new mausac();
+        mausac2.setMams("M008");
+        mausac2.setTenms("Cyan");
+        mausac2.setTrangThai(true);
+        mausac2 = mauSacRepository.save(mausac2);
+
+        // Now, update the second Mausac to have the same 'mams' as the first one
+        mausac2.setMams("M007");  // Duplicate value for 'mams'
+
+        // Try saving the updated Mausac and expect a DataIntegrityViolationException (unique constraint violation)
+        mausac finalMausac = mausac2;
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> {
+            mauSacRepository.save(finalMausac);
+        }, "Mã màu không được trùng lặp");
+    }
+    @Test
+    void updateMauSac_MissingMams() {
+        // First, create and save a valid Mausac
+        mausac mausac = new mausac();
+        mausac.setMams("M005");
+        mausac.setTenms("Orange");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Now, update the Mausac but set the 'mams' field to null or blank
+        mausac.setMams("");  // Invalid, as 'mams' should not be blank
+
+        // Try saving the Mausac object and expect a validation exception
+        com.example.asmgd1.asm.model.mausac finalMausac = mausac;
+        assertThrows(javax.validation.ConstraintViolationException.class, () -> {
+            mauSacRepository.save(finalMausac);
+        }, "Mã màu không được để trống");
+    }
+    @Test
+    void updateMauSac_MissingTenms() {
+        // First, create and save a valid Mausac
+        mausac mausac = new mausac();
+        mausac.setMams("M006");
+        mausac.setTenms("Pink");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Now, update the Mausac but set the 'tenms' field to null or blank
+        mausac.setTenms("");  // Invalid, as 'tenms' should not be blank
+
+        // Try saving the Mausac object and expect a validation exception
+        com.example.asmgd1.asm.model.mausac finalMausac = mausac;
+        assertThrows(javax.validation.ConstraintViolationException.class, () -> {
+            mauSacRepository.save(finalMausac);
+        }, "Tên màu không được để trống");
+    }
+    @Test
+    void updateMauSac_InvalidMams_Empty() {
+        // Create a valid Mausac entity and save it
+        mausac mausac = new mausac();
+        mausac.setMams("M014");
+        mausac.setTenms("Yellow");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Try updating 'mams' to an invalid value (empty string)
+        mausac.setMams("");  // Invalid empty value
+
+        // Assert that a ConstraintViolationException is thrown due to 'mams' being empty
+        com.example.asmgd1.asm.model.mausac finalMausac = mausac;
+        assertThrows(javax.validation.ConstraintViolationException.class, () -> {
+            mauSacRepository.save(finalMausac);
+        }, "Mã màu không được để trống");
+    }
+
+
+
+
+
+
+    @Test
+    void deleteMauSac_SuccessfulDeletion() {
+        mausac mausac = new mausac();
+        mausac.setMams("M017");
+        mausac.setTenms("Black");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Delete the Mausac entity
+        mauSacRepository.delete(mausac);
+
+        // Verify that the Mausac entity no longer exists
+        mausac deletedMausac = mauSacRepository.findById(mausac.getId()).orElse(null);
+        assertNull(deletedMausac, "Màu sắc không được xóa");
+    }
+    @Test
+    void deleteMauSac_NonExistentEntity() {
+        // Try deleting a non-existent Mausac (using an invalid ID)
+        mausac mausac = new mausac();
+        mausac.setId(9999);  // Non-existent ID
+
+        // Try deleting it
+        mauSacRepository.delete(mausac);
+
+        // Since the entity doesn't exist, we don't expect any exception here,
+        // just verify that the operation completes without error
+        mausac deletedMausac = mauSacRepository.findById(mausac.getId()).orElse(null);
+        assertNull(deletedMausac, "Màu sắc không tồn tại");
+    }
+    @Test
+    void deleteMauSac_EntityRemovedFromDatabase() {
+        // Create a valid Mausac entity and save it
+        mausac mausac = new mausac();
+        mausac.setMams("M018");
+        mausac.setTenms("White");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Capture the ID for later verification
+        Integer mausacId = mausac.getId();
+
+        // Delete the Mausac entity
+        mauSacRepository.delete(mausac);
+
+        // Verify that the entity is no longer in the database
+        mausac deletedMausac = mauSacRepository.findById(mausacId).orElse(null);
+        assertNull(deletedMausac, "Màu sắc không được xóa khỏi cơ sở dữ liệu");
+    }
+    @Test
+    void deleteMauSac_AlreadyDeleted() {
+        // Create a valid Mausac entity and save it
+        mausac mausac = new mausac();
+        mausac.setMams("M021");
+        mausac.setTenms("Green");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Delete the Mausac entity
+        mauSacRepository.delete(mausac);
+
+        // Try deleting again
+        mauSacRepository.delete(mausac);
+
+        // Assert that no exception is thrown and the system remains consistent
+        mausac deletedMausac = mauSacRepository.findById(mausac.getId()).orElse(null);
+        assertNull(deletedMausac, "Màu sắc đã bị xóa nhưng vẫn tồn tại");
+    }
+    @Test
+    void deleteMauSac_SoftDelete() {
+        // Create a valid Mausac entity and save it
+        mausac mausac = new mausac();
+        mausac.setMams("M024");
+        mausac.setTenms("Yellow");
+        mausac.setTrangThai(true);
+        mausac = mauSacRepository.save(mausac);
+
+        // Perform soft delete
+        mausac.setTrangThai(false);  // Mark as deleted
+        mauSacRepository.save(mausac);
+
+        // Verify that Mausac is not deleted from the database, but its 'trangThai' is updated
+        mausac updatedMausac = mauSacRepository.findById(mausac.getId()).orElse(null);
+        assertNotNull(updatedMausac, "Màu sắc không bị xóa khỏi cơ sở dữ liệu");
+        assertFalse(updatedMausac.isTrangThai(), "Trạng thái màu sắc không được cập nhật");
+    }
+
+
+}
