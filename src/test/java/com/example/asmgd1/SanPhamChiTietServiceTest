@@ -1,0 +1,482 @@
+package com.example.asmgd1.Service;
+
+import com.example.asmgd1.asm.Repository.*;
+import com.example.asmgd1.asm.model.kichthuoc;
+import com.example.asmgd1.asm.model.mausac;
+import com.example.asmgd1.asm.model.sanpham;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
+import com.example.asmgd1.asm.model.spchitiet;
+import java.util.Collections;
+
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+@SpringBootTest
+@Transactional
+@Rollback
+
+class SanPhamChiTietServiceTest {
+    @InjectMocks
+    private SanPhamChiTietService sanPhamChiTietService;
+    @Mock
+    private SPCTRepository spctRepository;
+    @Mock
+    private SanPhamRepository sanPhamRepository;
+    @Mock
+    private KichThuocRepository kichThuocRepository;
+    @Mock
+    private MauSacRepository mauSacRepository;
+    private Integer id;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @AfterEach
+    void tearDown() {
+    }
+
+    @Test
+    void getAllSanPhamChiTiet_Success() {
+        spchitiet spc1 = new spchitiet();
+        spchitiet spc2 = new spchitiet();
+        List<spchitiet> expectedList = Arrays.asList(spc1, spc2);
+
+        // Mock repository trả về danh sách giả
+        when(spctRepository.findAll()).thenReturn(expectedList);
+
+        // Act: Gọi phương thức cần kiểm tra
+        List<spchitiet> result = sanPhamChiTietService.getAllSanPhamChiTiet();
+
+        // Assert: Kiểm tra kết quả trả về không null và có dữ liệu đúng
+        assertNotNull(result, "Danh sách không được null.");
+        assertEquals(2, result.size(), "Danh sách phải có 2 phần tử.");
+        assertTrue(result.contains(spc1), "Danh sách phải chứa spc1.");
+        assertTrue(result.contains(spc2), "Danh sách phải chứa spc2.");
+    }
+    @Test
+    void getAllSanPhamChiTiet_EmptyList() {
+        // Arrange: Mock repository trả về danh sách rỗng
+        when(spctRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // Act: Gọi phương thức cần kiểm tra
+        List<spchitiet> result = sanPhamChiTietService.getAllSanPhamChiTiet();
+
+        // Assert: Kiểm tra kết quả trả về là danh sách rỗng
+        assertNotNull(result, "Danh sách không được null.");
+        assertTrue(result.isEmpty(), "Danh sách phải rỗng.");
+    }
+    @Test
+    void getAllSanPhamChiTiet_NullResponse() {
+        // Arrange: Mock repository trả về null
+        when(spctRepository.findAll()).thenReturn(null);
+
+        // Act: Gọi phương thức cần kiểm tra
+        List<spchitiet> result = sanPhamChiTietService.getAllSanPhamChiTiet();
+
+        // Assert: Kiểm tra kết quả trả về là null
+        assertNull(result, "Kết quả trả về phải là null nếu repository trả về null.");
+    }
+    @Test
+    void getAllSanPhamChiTiet_InvalidData() {
+        // Arrange: Tạo đối tượng spchitiet có dữ liệu không hợp lệ
+        spchitiet invalidSpc = new spchitiet();
+        invalidSpc.setMa(null); // Giả sử "Ma" không được để null
+        List<spchitiet> expectedList = Collections.singletonList(invalidSpc);
+
+        // Mock repository trả về dữ liệu không hợp lệ
+        when(spctRepository.findAll()).thenReturn(expectedList);
+
+        // Act: Gọi phương thức cần kiểm tra
+        List<spchitiet> result = sanPhamChiTietService.getAllSanPhamChiTiet();
+
+        // Assert: Kiểm tra dữ liệu không hợp lệ trong kết quả trả về
+        assertNotNull(result, "Danh sách không được null.");
+        assertEquals(1, result.size(), "Danh sách phải có 1 phần tử.");
+        assertNull(result.get(0).getMa(), "'Ma' không được để null.");
+    }
+    @Test
+    void getAllSanPhamChiTiet_Exception() {
+        // Arrange: Mock repository ném ra một exception
+        when(spctRepository.findAll()).thenThrow(new RuntimeException("Lỗi cơ sở dữ liệu"));
+
+        // Act & Assert: Kiểm tra rằng phương thức ném ra exception
+        assertThrows(RuntimeException.class, () -> {
+            sanPhamChiTietService.getAllSanPhamChiTiet();
+        }, "Phương thức phải ném ra RuntimeException nếu repository gặp lỗi.");
+    }
+
+
+
+
+    @Test
+    void getSanPhamChiTietById_Found() {
+        spchitiet expectedSpc = new spchitiet();
+        expectedSpc.setId(1);
+        expectedSpc.setMa("SPCT001");
+        when(spctRepository.findById(1)).thenReturn(Optional.of(expectedSpc));
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.getSanPhamChiTietById(1);
+
+        // Assert: Kiểm tra đối tượng trả về không null và có dữ liệu đúng
+        assertNotNull(result, "Đối tượng không được null.");
+        assertEquals(1, result.getId(), "ID không đúng.");
+        assertEquals("SPCT001", result.getMa(), "Mã không đúng.");
+    }
+    @Test
+    void getSanPhamChiTietById_NotFound() {
+        // Arrange: Giả lập repository trả về Optional.empty() khi không tìm thấy ID
+        when(spctRepository.findById(999)).thenReturn(Optional.empty());
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.getSanPhamChiTietById(999);
+
+        // Assert: Kiểm tra kết quả trả về là null
+        assertNull(result, "Đối tượng phải là null khi không tìm thấy ID.");
+    }
+    @Test
+    void getSanPhamChiTietById_InvalidId() {
+        // Act & Assert: Kiểm tra khi ID là một giá trị không hợp lệ, ví dụ giá trị âm
+        assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.getSanPhamChiTietById(-1);
+        }, "ID không hợp lệ, phải lớn hơn hoặc bằng 0.");
+    }
+    @Test
+    void getSanPhamChiTietById_NullId() {
+        // Act & Assert: Kiểm tra khi ID là null
+        assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.getSanPhamChiTietById(null);
+        }, "ID không được null.");
+    }
+    @Test
+    void getSanPhamChiTietById_ValidIdAndData() {
+        // Arrange: Tạo đối tượng spchitiet giả và giả lập repository trả về đối tượng
+        spchitiet expectedSpc = new spchitiet();
+        expectedSpc.setId(2);
+        expectedSpc.setMa("SPCT002");
+        when(spctRepository.findById(2)).thenReturn(Optional.of(expectedSpc));
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.getSanPhamChiTietById(2);
+
+        // Assert: Kiểm tra kết quả trả về đúng với dữ liệu đã mock
+        assertNotNull(result, "Đối tượng không được null.");
+        assertEquals(2, result.getId(), "ID không đúng.");
+        assertEquals("SPCT002", result.getMa(), "Mã không đúng.");
+    }
+
+    @Test
+    void searchSanPhamChiTiet_Found() {
+        // Arrange: Tạo đối tượng spchitiet giả và giả lập repository trả về danh sách chứa đối tượng
+        spchitiet spc1 = new spchitiet();
+        spc1.setId(1);
+        spc1.setMa("SPCT001");
+
+        List<spchitiet> expectedList = Arrays.asList(spc1);
+        when(spctRepository.searchByid(1)).thenReturn((ArrayList<spchitiet>) expectedList);
+
+        // Act: Gọi phương thức cần kiểm tra
+        List<spchitiet> result = sanPhamChiTietService.searchSanPhamChiTiet(1);
+
+        // Assert: Kiểm tra kết quả trả về không null và có dữ liệu đúng
+        assertNotNull(result, "Danh sách không được null.");
+        assertEquals(1, result.size(), "Danh sách phải có 1 phần tử.");
+        assertEquals("SPCT001", result.get(0).getMa(), "Mã không đúng.");
+    }
+    @Test
+    void searchSanPhamChiTiet_InvalidId() {
+        // Act & Assert: Kiểm tra khi ID là một giá trị không hợp lệ, ví dụ giá trị âm
+        assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.searchSanPhamChiTiet(-1);
+        }, "ID không hợp lệ, phải lớn hơn hoặc bằng 0.");
+    }
+    @Test
+    void searchSanPhamChiTiet_NullId() {
+        // Act & Assert: Kiểm tra khi ID là null
+        assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.searchSanPhamChiTiet(null);
+        }, "ID không được null.");
+    }
+    @Test
+    void searchSanPhamChiTiet_ValidIdAndData() {
+        // Arrange: Tạo đối tượng spchitiet giả và giả lập repository trả về danh sách chứa đối tượng
+        spchitiet spc1 = new spchitiet();
+        spc1.setId(2);
+        spc1.setMa("SPCT002");
+
+        List<spchitiet> expectedList = Arrays.asList(spc1);
+        when(spctRepository.searchByid(2)).thenReturn((ArrayList<spchitiet>) expectedList);
+        List<spchitiet> result = sanPhamChiTietService.searchSanPhamChiTiet(2);
+
+        // Assert: Kiểm tra kết quả trả về không null và có dữ liệu đúng
+        assertNotNull(result, "Danh sách không được null.");
+        assertEquals(1, result.size(), "Danh sách phải có 1 phần tử.");
+        assertEquals("SPCT002", result.get(0).getMa(), "Mã không đúng.");
+    }
+    @Test
+    void searchSanPhamChiTiet_MultipleResults() {
+        // Arrange: Tạo danh sách nhiều sản phẩm chi tiết
+        spchitiet spc1 = new spchitiet();
+        spc1.setId(1);
+        spc1.setMa("SP001");
+        spc1.setSoluong(100);
+        spc1.setDongia(200.0);
+
+        spchitiet spc2 = new spchitiet();
+        spc2.setId(2);
+        spc2.setMa("SP002");
+        spc2.setSoluong(200);
+        spc2.setDongia(300.0);
+
+        List<spchitiet> expectedList = Arrays.asList(spc1, spc2);
+
+        // Giả lập repository trả về nhiều kết quả tìm kiếm
+        when(spctRepository.searchByid(1)).thenReturn((ArrayList<spchitiet>) expectedList);
+
+        // Act: Gọi phương thức cần kiểm tra
+        List<spchitiet> result = sanPhamChiTietService.searchSanPhamChiTiet(1);
+
+        // Assert: Kiểm tra kết quả trả về có đúng 2 phần tử
+        assertNotNull(result, "Danh sách không được null.");
+        assertEquals(2, result.size(), "Danh sách phải có 2 phần tử.");
+        assertTrue(result.contains(spc1), "Danh sách phải chứa spc1.");
+        assertTrue(result.contains(spc2), "Danh sách phải chứa spc2.");
+    }
+
+
+    @Test
+    void saveSanPhamChiTiet_Success() {
+        // Arrange: Tạo sản phẩm chi tiết mẫu
+        spchitiet spc = new spchitiet();
+        spc.setMa("SP001");
+        spc.setSoluong(100);
+        spc.setDongia(200.0);
+
+        // Giả lập repository lưu thành công
+        when(spctRepository.save(spc)).thenReturn(spc);
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.saveSanPhamChiTiet(spc);
+
+        // Assert: Kiểm tra kết quả trả về không null và các giá trị đúng
+        assertNotNull(result, "Sản phẩm chi tiết không được null.");
+        assertEquals("SP001", result.getMa(), "Mã sản phẩm không đúng.");
+        assertEquals(100, result.getSoluong(), "Số lượng không đúng.");
+    }
+    @Test
+    void saveSanPhamChiTiet_InvalidName() {
+        // Arrange: Tạo sản phẩm chi tiết với tên trống
+        spchitiet spc = new spchitiet();
+        spc.setMa("");
+        spc.setSoluong(100);
+        spc.setDongia(200.0);
+
+        // Giả lập repository không lưu được do tên không hợp lệ
+        when(spctRepository.save(spc)).thenThrow(new IllegalArgumentException("Tên sản phẩm không được để trống"));
+
+        // Act & Assert: Kiểm tra ngoại lệ khi tên sản phẩm trống
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.saveSanPhamChiTiet(spc);
+        });
+        assertEquals("Tên sản phẩm không được để trống", exception.getMessage());
+    }
+    @Test
+    void saveSanPhamChiTiet_NegativeQuantity() {
+        // Arrange: Tạo sản phẩm chi tiết với số lượng âm
+        spchitiet spc = new spchitiet();
+        spc.setMa("SP002");
+        spc.setSoluong(-50);  // Số lượng âm không hợp lệ
+        spc.setDongia(150.0);
+
+        // Act & Assert: Kiểm tra ngoại lệ khi số lượng âm
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.saveSanPhamChiTiet(spc);
+        });
+        assertEquals("Số lượng không thể âm", exception.getMessage());
+    }
+    @Test
+    void saveSanPhamChiTiet_InvalidSanPham() {
+        // Arrange: Tạo sản phẩm chi tiết hợp lệ nhưng sản phẩm không tồn tại
+        spchitiet spc = new spchitiet();
+        spc.setMa("SP003");
+        spc.setSoluong(50);
+        spc.setDongia(250.0);
+
+        // Giả lập repository không tìm thấy sản phẩm
+        when(sanPhamRepository.findById(spc.getSanPham().getId())).thenReturn(Optional.empty());
+
+        // Act & Assert: Kiểm tra ngoại lệ khi sản phẩm không tồn tại
+        assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.saveSanPhamChiTiet(spc);
+        }, "Sản phẩm không tồn tại.");
+    }
+    @Test
+    void saveSanPhamChiTiet_ValidData() {
+        // Arrange: Tạo sản phẩm chi tiết hợp lệ
+        spchitiet spc = new spchitiet();
+        spc.setMa("SP004");
+        spc.setSoluong(200);
+        spc.setDongia(100.0);
+
+        // Giả lập repository lưu thành công
+        when(spctRepository.save(spc)).thenReturn(spc);
+
+        // Giả lập các repository trả về dữ liệu hợp lệ
+        when(sanPhamRepository.findById(spc.getSanPham().getId())).thenReturn(Optional.of(new sanpham()));
+        when(kichThuocRepository.findById(spc.getKichThuoc().getId())).thenReturn(Optional.of(new kichthuoc()));
+        when(mauSacRepository.findById(spc.getMauSac().getId())).thenReturn(Optional.of(new mausac()));
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.saveSanPhamChiTiet(spc);
+
+        // Assert: Kiểm tra kết quả trả về đúng
+        assertNotNull(result, "Sản phẩm chi tiết không được null.");
+        assertEquals("SP004", result.getMa(), "Mã sản phẩm không đúng.");
+        assertEquals(200, result.getSoluong(), "Số lượng không đúng.");
+        assertEquals(100.0, result.getDongia(), "Đơn giá không đúng.");
+    }
+
+
+    @Test
+    void updateSanPhamChiTiet_Success() {
+        // Arrange: Tạo sản phẩm chi tiết ban đầu
+        spchitiet spc = new spchitiet();
+        spc.setId(1);
+        spc.setMa("SP001");
+        spc.setSoluong(100);
+        spc.setDongia(200.0);
+
+        // Tạo sản phẩm chi tiết cập nhật
+        spchitiet updatedSpc = new spchitiet();
+        updatedSpc.setMa("SP001_UPDATED");
+        updatedSpc.setSoluong(150);
+        updatedSpc.setDongia(250.0);
+
+        // Giả lập repository tìm thấy sản phẩm và trả về kết quả sau khi cập nhật
+        when(spctRepository.findById(1)).thenReturn(Optional.of(spc));
+        when(spctRepository.save(updatedSpc)).thenReturn(updatedSpc);
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.updateSanPhamChiTiet(1, updatedSpc);
+
+        // Assert: Kiểm tra kết quả trả về đúng
+        assertNotNull(result, "Sản phẩm chi tiết không được null.");
+        assertEquals("SP001_UPDATED", result.getMa(), "Mã sản phẩm không đúng.");
+        assertEquals(150, result.getSoluong(), "Số lượng không đúng.");
+        assertEquals(250.0, result.getDongia(), "Đơn giá không đúng.");
+    }
+    @Test
+    void updateSanPhamChiTiet_NotFound() {
+        // Arrange: Tạo sản phẩm chi tiết để cập nhật
+        spchitiet updatedSpc = new spchitiet();
+        updatedSpc.setId(999);
+        updatedSpc.setMa("SP999");
+        updatedSpc.setSoluong(100);
+        updatedSpc.setDongia(300.0);
+
+        // Giả lập repository không tìm thấy sản phẩm chi tiết
+        when(spctRepository.findById(999)).thenReturn(Optional.empty());
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.updateSanPhamChiTiet(999, updatedSpc);
+
+        // Assert: Kiểm tra kết quả trả về là null khi không tìm thấy sản phẩm chi tiết
+        assertNull(result, "Kết quả phải là null khi không tìm thấy sản phẩm chi tiết.");
+    }
+    @Test
+    void updateSanPhamChiTiet_InvalidQuantity() {
+        // Arrange: Tạo sản phẩm chi tiết ban đầu
+        spchitiet spc = new spchitiet();
+        spc.setId(1);
+        spc.setMa("SP001");
+        spc.setSoluong(100);
+        spc.setDongia(200.0);
+
+        // Tạo sản phẩm chi tiết cập nhật với số lượng âm
+        spchitiet updatedSpc = new spchitiet();
+        updatedSpc.setSoluong(-50);  // Số lượng âm không hợp lệ
+
+        // Giả lập repository tìm thấy sản phẩm và trả về kết quả sau khi cập nhật
+        when(spctRepository.findById(1)).thenReturn(Optional.of(spc));
+
+        // Act & Assert: Kiểm tra ngoại lệ khi số lượng âm
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.updateSanPhamChiTiet(1, updatedSpc);
+        });
+        assertEquals("Số lượng không thể âm", exception.getMessage());
+    }
+    @Test
+    void updateSanPhamChiTiet_SanPhamNotExist() {
+        // Arrange: Tạo sản phẩm chi tiết ban đầu
+        spchitiet spc = new spchitiet();
+        spc.setId(1);
+        spc.setMa("SP001");
+        spc.setSoluong(100);
+        spc.setDongia(200.0);
+
+        // Tạo sản phẩm chi tiết cập nhật
+        spchitiet updatedSpc = new spchitiet();
+        updatedSpc.setMa("SP001_UPDATED");
+        updatedSpc.setSoluong(150);
+        updatedSpc.setDongia(250.0);
+
+        // Giả lập repository tìm thấy sản phẩm nhưng sản phẩm đã bị xóa
+        when(spctRepository.findById(1)).thenReturn(Optional.of(spc));
+        when(spctRepository.save(updatedSpc)).thenReturn(updatedSpc);
+        when(sanPhamRepository.findById(spc.getSanPham().getId())).thenReturn(Optional.empty());
+
+        // Act & Assert: Kiểm tra ngoại lệ khi sản phẩm không tồn tại
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            sanPhamChiTietService.updateSanPhamChiTiet(1, updatedSpc);
+        });
+        assertEquals("Sản phẩm không tồn tại", exception.getMessage());
+    }
+    @Test
+    void updateSanPhamChiTiet_ValidData() {
+        // Arrange: Tạo sản phẩm chi tiết ban đầu
+        spchitiet spc = new spchitiet();
+        spc.setId(1);
+        spc.setMa("SP001");
+        spc.setSoluong(100);
+        spc.setDongia(200.0);
+
+        // Tạo sản phẩm chi tiết cập nhật với thông tin hợp lệ
+        spchitiet updatedSpc = new spchitiet();
+        updatedSpc.setMa("SP001_UPDATED");
+        updatedSpc.setSoluong(200);
+        updatedSpc.setDongia(250.0);
+
+        // Giả lập repository tìm thấy sản phẩm và trả về kết quả sau khi cập nhật
+        when(spctRepository.findById(1)).thenReturn(Optional.of(spc));
+        when(spctRepository.save(updatedSpc)).thenReturn(updatedSpc);
+        when(sanPhamRepository.findById(updatedSpc.getSanPham().getId())).thenReturn(Optional.of(new sanpham()));
+        when(kichThuocRepository.findById(updatedSpc.getKichThuoc().getId())).thenReturn(Optional.of(new kichthuoc()));
+        when(mauSacRepository.findById(updatedSpc.getMauSac().getId())).thenReturn(Optional.of(new mausac()));
+
+        // Act: Gọi phương thức cần kiểm tra
+        spchitiet result = sanPhamChiTietService.updateSanPhamChiTiet(1, updatedSpc);
+
+        // Assert: Kiểm tra kết quả trả về đúng
+        assertNotNull(result, "Sản phẩm chi tiết không được null.");
+        assertEquals("SP001_UPDATED", result.getMa(), "Mã sản phẩm không đúng.");
+        assertEquals(200, result.getSoluong(), "Số lượng không đúng.");
+        assertEquals(250.0, result.getDongia(), "Đơn giá không đúng.");
+    }
+
+
+}
