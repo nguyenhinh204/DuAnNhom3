@@ -1,0 +1,884 @@
+package com.example.asmgd1.Service;
+
+import com.example.asmgd1.asm.Repository.KhachHangRepository;
+import com.example.asmgd1.asm.Repository.KichThuocRepository;
+import com.example.asmgd1.asm.model.kichthuoc;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+@SpringBootTest
+@Transactional
+@Rollback
+class KichThuocServiceTest {
+    @Autowired
+    private KichThuocRepository kichThuocRepository;
+    @Autowired
+    private KichThuocService kichThuocService;
+    @BeforeEach
+    void setUp() {
+    }
+
+    @Test
+    void getAllKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT001");
+        kichThuoc1.setTenkt("Kích Thước Nhỏ");
+        kichThuoc1.setTrangThai(true);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT002");
+        kichThuoc2.setTenkt("Kích Thước Vừa");
+        kichThuoc2.setTrangThai(true);
+
+        kichthuoc kichThuoc3 = new kichthuoc();
+        kichThuoc3.setMakt("KT003");
+        kichThuoc3.setTenkt("Kích Thước Lớn");
+        kichThuoc3.setTrangThai(true);
+        List<kichthuoc> kichthuocs = kichThuocService.getAllKichThuoc();
+        assertFalse(kichthuocs.isEmpty(), "Danh sách không được rỗng khi có dữ liệu");
+        assertEquals(19, kichthuocs.size());
+    }
+    @Test
+    void testGetAllKichThuoc_NotNull() {
+        List<kichthuoc> kichThuocList = kichThuocService.getAllKichThuoc();
+        assertNotNull(kichThuocList, "Danh sách kích thước không được null.");
+    }
+
+    @Test
+    void testGetAllKichThuoc_ValidData() {
+        List<kichthuoc> kichThuocList = kichThuocService.getAllKichThuoc();
+        kichthuoc kichThuoc = kichThuocList.get(0);
+        assertNotNull(kichThuoc.getId(), "ID không được null.");
+        assertNotNull(kichThuoc.getMakt(), "Mã kích thước không được null.");
+        assertNotNull(kichThuoc.getTenkt(), "Tên kích thước không được null.");
+    }
+
+    @Test
+    void testGetAllKichThuoc_DuplicateEntries() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT01");
+        kichThuoc1.setTenkt("Kích thước giống nhau");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT01");
+        kichThuoc2.setTenkt("Kích thước giống nhau");
+        kichThuoc2.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc2);/-strong/-heart:>:o:-((:-h List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertEquals(2, kichThuocList.size(), "Danh sách phải có bản ghi trùng.");
+    }
+    @Test
+    void testGetAllKichThuoc_TrangThai() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT03");
+        kichThuoc.setTenkt("Kích thước trung bình");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertTrue(kichThuocList.get(0).isTrangThai(), "Trạng thái phải là true.");
+    }
+    @Test
+    void testGetAllKichThuoc_EmptyList() {
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertTrue(kichThuocList.isEmpty(), "Danh sách phải rỗng khi không có bản ghi.");
+    }
+
+    @Test
+    void searchKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT01");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT02");
+        kichThuoc2.setTenkt("Kích thước lớn");
+        kichThuoc2.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> results = kichThuocRepository.searchBykt(kichThuoc1.getId());
+
+        assertNotNull(results, "Kết quả tìm kiếm không được null.");
+        assertEquals(1, results.size(), "Chỉ có một kích thước khớp với tên 'nhỏ'.");
+        assertEquals("KT01", results.get(0).getMakt(), "Mã kích thước không đúng.");
+    }
+    @Test
+    void searchKichThuoc_ByTrangThai() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT01");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT02");
+        kichThuoc2.setTenkt("Kích thước lớn");
+        kichThuoc2.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> results = kichThuocRepository.searchBykt(kichThuoc1.getId());
+
+        assertNotNull(results, "Kết quả tìm kiếm không được null.");
+        assertEquals(1, results.size(), "Chỉ có một kích thước có trạng thái 'true'.");
+        assertEquals("KT01", results.get(0).getMakt(), "Mã kích thước không đúng.");
+    }
+    @Test
+    void searchKichThuoc_NotFound() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT01");
+        kichThuoc.setTenkt("Kích thước nhỏ");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        List<kichthuoc> results = kichThuocRepository.searchBykt(kichThuoc.getId());/-strong/-heart:>:o:-((:-h assertTrue(results.isEmpty(), "Kết quả phải rỗng khi không có dữ liệu khớp.");
+    }
+    @Test
+    void testSaveKichThuoc_InvalidData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt(""); // Mã trống, không hợp lệ
+        kichThuoc.setTenkt(""); // Tên trống, không hợp lệ
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã hoặc tên để trống.");
+    }
+    @Test
+    void saveKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT04");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT04"); // Trùng mã
+        kichThuoc2.setTenkt("Kích thước khác");
+        kichThuoc2.setTrangThai(false);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc2);
+        }, "Không được phép lưu dữ liệu khi mã bị trùng lặp.");
+    }
+    @Test
+    void saveKichThuoc_ValidData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT05");
+        kichThuoc.setTenkt("Kích thước vừa");
+        kichThuoc.setTrangThai(true);
+
+        kichthuoc savedKichThuoc = kichThuocRepository.save(kichThuoc);
+        assertNotNull(savedKichThuoc, "Không lưu được kích thước hợp lệ.");
+        assertEquals("KT05", savedKichThuoc.getMakt(), "Mã kích thước không khớp sau khi lưu.");
+        assertEquals("Kích thước vừa", savedKichThuoc.getTenkt(), "Tên kích thước không khớp sau khi lưu.");
+        assertTrue(savedKichThuoc.isTrangThai(), "Trạng thái không khớp sau khi lưu.");
+    }
+    @Test
+    void saveKichThuoc_DefaultTrangThai() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT06");
+        kichThuoc.setTenkt("Kích thước lớn");
+
+        kichthuoc savedKichThuoc = kichThuocRepository.save(kichThuoc);
+        assertNotNull(savedKichThuoc, "Không lưu được kích thước hợp lệ.");
+        assertEquals("KT06", savedKichThuoc.getMakt(), "Mã kích thước không khớp sau khi lưu.");
+        assertEquals("Kích thước lớn", savedKichThuoc.getTenkt(), "Tên kích thước không khớp sau khi lưu.");
+        assertFalse(savedKichThuoc.isTrangThai(), "Trạng thái mặc định phải là 'false' nếu không được thiết lập.");
+    }
+    @Test
+    void saveKichThuoc_DuplicateMakt() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT07");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT07"); // Mã bị trùng/-strong/-heart:>:o:-((:-h kichThuoc2.setTenkt("Kích thước trung bình");
+        kichThuoc2.setTrangThai(false);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc2);
+        }, "Không được phép lưu dữ liệu khi mã bị trùng.");
+    }
+    @Test
+    void saveKichThuoc_ExceedingMaktLength() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT1234567890"); // Mã dài hơn giới hạn cho phép
+        kichThuoc.setTenkt("Kích thước quá dài");
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã vượt quá độ dài cho phép.");
+    }
+    @Test
+    void saveKichThuoc_ExceedingTenktLength() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT08");
+        kichThuoc.setTenkt("Tên kích thước rất dài, vượt quá số ký tự cho phép."); // Tên quá dài
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi tên vượt quá độ dài cho phép.");
+    }
+    @Test
+    void saveKichThuoc_NullData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt(null); // Mã null
+        kichThuoc.setTenkt(null); // Tên null
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã hoặc tên null.");
+    }
+    @Test
+    void saveKichThuoc_BlankData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("   "); // Mã chỉ chứa khoảng trắng
+        kichThuoc.setTenkt("   "); // Tên chỉ chứa khoảng trắng
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã hoặc tên chỉ chứa khoảng trắng.");
+    }
+
+    @Test
+    void updateKichThuoc() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT05");
+        kichThuoc.setTenkt("Kích thước ban đầu");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTenkt("Kích thước đã cập nhật");
+        kichThuoc.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc updatedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(updatedKichThuoc, "Dữ liệu cập nhật không được null.");
+        assertEquals("Kích thước đã cập nhật", updatedKichThuoc.getTenkt(), "Tên kích thước không được cập nhật đúng.");
+        assertFalse(updatedKichThuoc.isTrangThai(), "Trạng thái không được cập nhật đúng.");
+    }
+    @Test
+    void updateKichThuoc_OnlyUpdateName() {/-strong/-heart:>:o:-((:-h kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT06");
+        kichThuoc.setTenkt("Kích thước cũ");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTenkt("Kích thước mới");
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc updatedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(updatedKichThuoc, "Dữ liệu sau cập nhật không được null.");
+        assertEquals("Kích thước mới", updatedKichThuoc.getTenkt(), "Tên kích thước không được cập nhật đúng.");
+        assertTrue(updatedKichThuoc.isTrangThai(), "Trạng thái không được thay đổi.");
+    }
+    @Test
+    void updateKichThuoc_UpdateTrangThai() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT07");
+        kichThuoc.setTenkt("Kích thước trung bình");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc updatedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(updatedKichThuoc, "Dữ liệu sau cập nhật không được null.");
+        assertFalse(updatedKichThuoc.isTrangThai(), "Trạng thái không được cập nhật đúng.");
+    }
+    @Test
+    void updateKichThuoc_InvalidData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT08");
+        kichThuoc.setTenkt("Kích thước hợp lệ");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTenkt(""); // Cập nhật với tên rỗng, không hợp lệ
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép cập nhật với tên rỗng.");
+    }
+    @Test
+    void updateKichThuoc_NoChanges() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT09");
+        kichThuoc.setTenkt("Kích thước lớn");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        // Không thay đổi gì, chỉ gọi save lại
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc unchangedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(unchangedKichThuoc, "Dữ liệu không được null sau khi save lại.");
+        assertEquals("Kích thước lớn", unchangedKichThuoc.getTenkt(), "Dữ liệu không được thay đổi.");
+        assertTrue(unchangedKichThuoc.isTrangThai(), "Trạng thái không được thay đổi.");
+    }
+    @Test
+    void updateKichThuoc_NonExistentRecord() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setId(9999); // ID không tồn tại
+        kichThuoc.setMakt("KT10");
+        kichThuoc.setTenkt("Không tồn tại");
+        kichThuoc.setTrangThai(true);/-strong/-heart:>:o:-((:-h assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép cập nhật bản ghi không tồn tại.");
+    }
+    @Test
+    void updateKichThuoc_DuplicateMakt() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT11");
+        kichThuoc1.setTenkt("Kích thước đầu tiên");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT12");
+        kichThuoc2.setTenkt("Kích thước thứ hai");
+        kichThuoc2.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc2);
+
+        kichThuoc2.setMakt("KT11"); // Cập nhật với mã bị trùng
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc2);
+        }, "Không được phép cập nhật với mã bị trùng.");
+    }
+
+    @Test
+    void deleteKichThuoc() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT06");
+        kichThuoc.setTenkt("Kích thước cần xóa");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuocRepository.delete(kichThuoc);
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertTrue(kichThuocList.isEmpty(), "Danh sách phải rỗng sau khi xóa bản ghi.");
+    }
+    @Test
+    void deleteExistingKichThuoc() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT07");
+        kichThuoc.setTenkt("Kích thước cần xóa");
+        kichThuoc.setTrangThai(true);
+        kichthuoc savedKichThuoc = kichThuocRepository.save(kichThuoc);
+
+        kichThuocRepository.delete(savedKichThuoc);
+
+        boolean exists = kichThuocRepository.findById(savedKichThuoc.getId()).isPresent();
+        assertFalse(exists, "Dữ liệu không được tồn tại sau khi xóa.");
+    }
+    @Test
+    void deleteNonExistingKichThuoc() {
+        Integer nonExistingId = 999; // ID không tồn tại trong bảng
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.deleteById(nonExistingId);
+        }, "Không được phép xóa bản ghi không tồn tại.");
+    }
+    @Test
+    void deleteMultipleKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT08");
+        kichThuoc1.setTenkt("Kích thước 1");
+        kichThuoc1.setTrangThai(true);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT09");
+        kichThuoc2.setTenkt("Kích thước 2");
+        kichThuoc2.setTrangThai(false);
+
+        kichThuocRepository.save(kichThuoc1);
+        kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> toDelete = List.of(kichThuoc1, kichThuoc2);
+        kichThuocRepository.deleteAll(toDelete);
+
+        List<kichthuoc> remaining = kichThuocRepository.findAll();/-strong/-heart:>:o:-((:-h assertTrue(remaining.isEmpty(), "Danh sách phải rỗng sau khi xóa toàn bộ bản ghi.");
+    }
+    @Test
+    void deleteAllKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT10");
+        kichThuoc1.setTenkt("Kích thước 1");
+        kichThuoc1.setTrangThai(true);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT11");
+        kichThuoc2.setTenkt("Kích thước 2");
+        kichThuoc2.setTrangThai(false);
+
+        kichThuocRepository.save(kichThuoc1);
+        kichThuocRepository.save(kichThuoc2);
+
+        kichThuocRepository.deleteAll();
+
+        List<kichthuoc> remaining = kichThuocRepository.findAll();
+        assertTrue(remaining.isEmpty(), "Danh sách phải rỗng sau khi xóa toàn bộ dữ liệu.");
+    }
+
+}package com.example.asmgd1.Service;
+
+import com.example.asmgd1.asm.Repository.KhachHangRepository;
+import com.example.asmgd1.asm.Repository.KichThuocRepository;
+import com.example.asmgd1.asm.model.kichthuoc;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+@SpringBootTest
+@Transactional
+@Rollback
+class KichThuocServiceTest {
+    @Autowired
+    private KichThuocRepository kichThuocRepository;
+    @Autowired
+    private KichThuocService kichThuocService;
+    @BeforeEach
+    void setUp() {
+    }
+
+    @Test
+    void getAllKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT001");
+        kichThuoc1.setTenkt("Kích Thước Nhỏ");
+        kichThuoc1.setTrangThai(true);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT002");
+        kichThuoc2.setTenkt("Kích Thước Vừa");
+        kichThuoc2.setTrangThai(true);
+
+        kichthuoc kichThuoc3 = new kichthuoc();
+        kichThuoc3.setMakt("KT003");
+        kichThuoc3.setTenkt("Kích Thước Lớn");
+        kichThuoc3.setTrangThai(true);
+        List<kichthuoc> kichthuocs = kichThuocService.getAllKichThuoc();
+        assertFalse(kichthuocs.isEmpty(), "Danh sách không được rỗng khi có dữ liệu");
+        assertEquals(19, kichthuocs.size());
+    }
+    @Test
+    void testGetAllKichThuoc_NotNull() {
+        List<kichthuoc> kichThuocList = kichThuocService.getAllKichThuoc();
+        assertNotNull(kichThuocList, "Danh sách kích thước không được null.");
+    }
+
+    @Test
+    void testGetAllKichThuoc_ValidData() {
+        List<kichthuoc> kichThuocList = kichThuocService.getAllKichThuoc();
+        kichthuoc kichThuoc = kichThuocList.get(0);/-strong/-heart:>:o:-((:-h assertNotNull(kichThuoc.getId(), "ID không được null.");
+        assertNotNull(kichThuoc.getMakt(), "Mã kích thước không được null.");
+        assertNotNull(kichThuoc.getTenkt(), "Tên kích thước không được null.");
+    }
+
+    @Test
+    void testGetAllKichThuoc_DuplicateEntries() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT01");
+        kichThuoc1.setTenkt("Kích thước giống nhau");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT01");
+        kichThuoc2.setTenkt("Kích thước giống nhau");
+        kichThuoc2.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertEquals(2, kichThuocList.size(), "Danh sách phải có bản ghi trùng.");
+    }
+    @Test
+    void testGetAllKichThuoc_TrangThai() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT03");
+        kichThuoc.setTenkt("Kích thước trung bình");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertTrue(kichThuocList.get(0).isTrangThai(), "Trạng thái phải là true.");
+    }
+    @Test
+    void testGetAllKichThuoc_EmptyList() {
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertTrue(kichThuocList.isEmpty(), "Danh sách phải rỗng khi không có bản ghi.");
+    }
+
+    @Test
+    void searchKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT01");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT02");
+        kichThuoc2.setTenkt("Kích thước lớn");
+        kichThuoc2.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> results = kichThuocRepository.searchBykt(kichThuoc1.getId());
+
+        assertNotNull(results, "Kết quả tìm kiếm không được null.");
+        assertEquals(1, results.size(), "Chỉ có một kích thước khớp với tên 'nhỏ'.");
+        assertEquals("KT01", results.get(0).getMakt(), "Mã kích thước không đúng.");
+    }
+    @Test
+    void searchKichThuoc_ByTrangThai() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT01");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT02");
+        kichThuoc2.setTenkt("Kích thước lớn");
+        kichThuoc2.setTrangThai(false);/-strong/-heart:>:o:-((:-h kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> results = kichThuocRepository.searchBykt(kichThuoc1.getId());
+
+        assertNotNull(results, "Kết quả tìm kiếm không được null.");
+        assertEquals(1, results.size(), "Chỉ có một kích thước có trạng thái 'true'.");
+        assertEquals("KT01", results.get(0).getMakt(), "Mã kích thước không đúng.");
+    }
+    @Test
+    void searchKichThuoc_NotFound() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT01");
+        kichThuoc.setTenkt("Kích thước nhỏ");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        List<kichthuoc> results = kichThuocRepository.searchBykt(kichThuoc.getId());
+
+        assertTrue(results.isEmpty(), "Kết quả phải rỗng khi không có dữ liệu khớp.");
+    }
+    @Test
+    void testSaveKichThuoc_InvalidData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt(""); // Mã trống, không hợp lệ
+        kichThuoc.setTenkt(""); // Tên trống, không hợp lệ
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã hoặc tên để trống.");
+    }
+    @Test
+    void saveKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT04");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT04"); // Trùng mã
+        kichThuoc2.setTenkt("Kích thước khác");
+        kichThuoc2.setTrangThai(false);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc2);
+        }, "Không được phép lưu dữ liệu khi mã bị trùng lặp.");
+    }
+    @Test
+    void saveKichThuoc_ValidData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT05");
+        kichThuoc.setTenkt("Kích thước vừa");
+        kichThuoc.setTrangThai(true);
+
+        kichthuoc savedKichThuoc = kichThuocRepository.save(kichThuoc);
+        assertNotNull(savedKichThuoc, "Không lưu được kích thước hợp lệ.");
+        assertEquals("KT05", savedKichThuoc.getMakt(), "Mã kích thước không khớp sau khi lưu.");
+        assertEquals("Kích thước vừa", savedKichThuoc.getTenkt(), "Tên kích thước không khớp sau khi lưu.");
+        assertTrue(savedKichThuoc.isTrangThai(), "Trạng thái không khớp sau khi lưu.");
+    }
+    @Test
+    void saveKichThuoc_DefaultTrangThai() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT06");
+        kichThuoc.setTenkt("Kích thước lớn");
+
+        kichthuoc savedKichThuoc = kichThuocRepository.save(kichThuoc);/-strong/-heart:>:o:-((:-h assertNotNull(savedKichThuoc, "Không lưu được kích thước hợp lệ.");
+        assertEquals("KT06", savedKichThuoc.getMakt(), "Mã kích thước không khớp sau khi lưu.");
+        assertEquals("Kích thước lớn", savedKichThuoc.getTenkt(), "Tên kích thước không khớp sau khi lưu.");
+        assertFalse(savedKichThuoc.isTrangThai(), "Trạng thái mặc định phải là 'false' nếu không được thiết lập.");
+    }
+    @Test
+    void saveKichThuoc_DuplicateMakt() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT07");
+        kichThuoc1.setTenkt("Kích thước nhỏ");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT07"); // Mã bị trùng
+        kichThuoc2.setTenkt("Kích thước trung bình");
+        kichThuoc2.setTrangThai(false);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc2);
+        }, "Không được phép lưu dữ liệu khi mã bị trùng.");
+    }
+    @Test
+    void saveKichThuoc_ExceedingMaktLength() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT1234567890"); // Mã dài hơn giới hạn cho phép
+        kichThuoc.setTenkt("Kích thước quá dài");
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã vượt quá độ dài cho phép.");
+    }
+    @Test
+    void saveKichThuoc_ExceedingTenktLength() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT08");
+        kichThuoc.setTenkt("Tên kích thước rất dài, vượt quá số ký tự cho phép."); // Tên quá dài
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi tên vượt quá độ dài cho phép.");
+    }
+    @Test
+    void saveKichThuoc_NullData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt(null); // Mã null
+        kichThuoc.setTenkt(null); // Tên null
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã hoặc tên null.");
+    }
+    @Test
+    void saveKichThuoc_BlankData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("   "); // Mã chỉ chứa khoảng trắng
+        kichThuoc.setTenkt("   "); // Tên chỉ chứa khoảng trắng
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép lưu dữ liệu khi mã hoặc tên chỉ chứa khoảng trắng.");
+    }
+
+    @Test
+    void updateKichThuoc() {/-strong/-heart:>:o:-((:-h kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT05");
+        kichThuoc.setTenkt("Kích thước ban đầu");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTenkt("Kích thước đã cập nhật");
+        kichThuoc.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc updatedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(updatedKichThuoc, "Dữ liệu cập nhật không được null.");
+        assertEquals("Kích thước đã cập nhật", updatedKichThuoc.getTenkt(), "Tên kích thước không được cập nhật đúng.");
+        assertFalse(updatedKichThuoc.isTrangThai(), "Trạng thái không được cập nhật đúng.");
+    }
+    @Test
+    void updateKichThuoc_OnlyUpdateName() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT06");
+        kichThuoc.setTenkt("Kích thước cũ");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTenkt("Kích thước mới");
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc updatedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(updatedKichThuoc, "Dữ liệu sau cập nhật không được null.");
+        assertEquals("Kích thước mới", updatedKichThuoc.getTenkt(), "Tên kích thước không được cập nhật đúng.");
+        assertTrue(updatedKichThuoc.isTrangThai(), "Trạng thái không được thay đổi.");
+    }
+    @Test
+    void updateKichThuoc_UpdateTrangThai() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT07");
+        kichThuoc.setTenkt("Kích thước trung bình");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc updatedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(updatedKichThuoc, "Dữ liệu sau cập nhật không được null.");
+        assertFalse(updatedKichThuoc.isTrangThai(), "Trạng thái không được cập nhật đúng.");
+    }
+    @Test
+    void updateKichThuoc_InvalidData() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT08");
+        kichThuoc.setTenkt("Kích thước hợp lệ");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuoc.setTenkt(""); // Cập nhật với tên rỗng, không hợp lệ
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép cập nhật với tên rỗng.");
+    }
+    @Test
+    void updateKichThuoc_NoChanges() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT09");
+        kichThuoc.setTenkt("Kích thước lớn");
+        kichThuoc.setTrangThai(true);/-strong/-heart:>:o:-((:-h kichThuocRepository.save(kichThuoc);
+
+        // Không thay đổi gì, chỉ gọi save lại
+        kichThuocRepository.save(kichThuoc);
+
+        kichthuoc unchangedKichThuoc = kichThuocRepository.findById(kichThuoc.getId()).orElse(null);
+        assertNotNull(unchangedKichThuoc, "Dữ liệu không được null sau khi save lại.");
+        assertEquals("Kích thước lớn", unchangedKichThuoc.getTenkt(), "Dữ liệu không được thay đổi.");
+        assertTrue(unchangedKichThuoc.isTrangThai(), "Trạng thái không được thay đổi.");
+    }
+    @Test
+    void updateKichThuoc_NonExistentRecord() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setId(9999); // ID không tồn tại
+        kichThuoc.setMakt("KT10");
+        kichThuoc.setTenkt("Không tồn tại");
+        kichThuoc.setTrangThai(true);
+
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc);
+        }, "Không được phép cập nhật bản ghi không tồn tại.");
+    }
+    @Test
+    void updateKichThuoc_DuplicateMakt() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT11");
+        kichThuoc1.setTenkt("Kích thước đầu tiên");
+        kichThuoc1.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc1);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT12");
+        kichThuoc2.setTenkt("Kích thước thứ hai");
+        kichThuoc2.setTrangThai(false);
+        kichThuocRepository.save(kichThuoc2);
+
+        kichThuoc2.setMakt("KT11"); // Cập nhật với mã bị trùng
+        assertThrows(Exception.class, () -> {
+            kichThuocRepository.save(kichThuoc2);
+        }, "Không được phép cập nhật với mã bị trùng.");
+    }
+
+    @Test
+    void deleteKichThuoc() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT06");
+        kichThuoc.setTenkt("Kích thước cần xóa");
+        kichThuoc.setTrangThai(true);
+        kichThuocRepository.save(kichThuoc);
+
+        kichThuocRepository.delete(kichThuoc);
+        List<kichthuoc> kichThuocList = kichThuocRepository.findAll();
+        assertTrue(kichThuocList.isEmpty(), "Danh sách phải rỗng sau khi xóa bản ghi.");
+    }
+    @Test
+    void deleteExistingKichThuoc() {
+        kichthuoc kichThuoc = new kichthuoc();
+        kichThuoc.setMakt("KT07");
+        kichThuoc.setTenkt("Kích thước cần xóa");
+        kichThuoc.setTrangThai(true);
+        kichthuoc savedKichThuoc = kichThuocRepository.save(kichThuoc);
+
+        kichThuocRepository.delete(savedKichThuoc);
+
+        boolean exists = kichThuocRepository.findById(savedKichThuoc.getId()).isPresent();
+        assertFalse(exists, "Dữ liệu không được tồn tại sau khi xóa.");
+    }
+    @Test
+    void deleteNonExistingKichThuoc() {
+        Integer nonExistingId = 999; // ID không tồn tại trong bảng
+
+        assertThrows(Exception.class, () -> {/-strong/-heart:>:o:-((:-h kichThuocRepository.deleteById(nonExistingId);
+        }, "Không được phép xóa bản ghi không tồn tại.");
+    }
+    @Test
+    void deleteMultipleKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT08");
+        kichThuoc1.setTenkt("Kích thước 1");
+        kichThuoc1.setTrangThai(true);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT09");
+        kichThuoc2.setTenkt("Kích thước 2");
+        kichThuoc2.setTrangThai(false);
+
+        kichThuocRepository.save(kichThuoc1);
+        kichThuocRepository.save(kichThuoc2);
+
+        List<kichthuoc> toDelete = List.of(kichThuoc1, kichThuoc2);
+        kichThuocRepository.deleteAll(toDelete);
+
+        List<kichthuoc> remaining = kichThuocRepository.findAll();
+        assertTrue(remaining.isEmpty(), "Danh sách phải rỗng sau khi xóa toàn bộ bản ghi.");
+    }
+    @Test
+    void deleteAllKichThuoc() {
+        kichthuoc kichThuoc1 = new kichthuoc();
+        kichThuoc1.setMakt("KT10");
+        kichThuoc1.setTenkt("Kích thước 1");
+        kichThuoc1.setTrangThai(true);
+
+        kichthuoc kichThuoc2 = new kichthuoc();
+        kichThuoc2.setMakt("KT11");
+        kichThuoc2.setTenkt("Kích thước 2");
+        kichThuoc2.setTrangThai(false);
+
+        kichThuocRepository.save(kichThuoc1);
+        kichThuocRepository.save(kichThuoc2);
+
+        kichThuocRepository.deleteAll();
+
+        List<kichthuoc> remaining = kichThuocRepository.findAll();
+        assertTrue(remaining.isEmpty(), "Danh sách phải rỗng sau khi xóa toàn bộ dữ liệu.");
+    }
+
+}​08:28/-strong/-heart:>:o:-((:-h Xem trước khi gửiThả Files vào đây để xem lại trước khi gửi
