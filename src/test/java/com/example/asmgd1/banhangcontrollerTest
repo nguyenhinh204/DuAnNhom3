@@ -1,0 +1,727 @@
+package com.example.asmgd1.asm.controller;
+import org.springframework.ui.Model;
+import com.example.asmgd1.asm.Repository.CartItemRepository;
+import com.example.asmgd1.asm.Repository.HDCTRepository;
+import com.example.asmgd1.asm.Repository.HoaDonRepository;
+import com.example.asmgd1.asm.Repository.SPCTRepository;
+import com.example.asmgd1.asm.model.CartItem;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import com.example.asmgd1.asm.model.hoadon;
+import com.example.asmgd1.asm.model.hdchitiet;
+import com.example.asmgd1.asm.model.spchitiet;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MockMvcBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+@SpringBootTest
+@Transactional
+@Rollback
+class banhangcontrollerTest {
+
+
+
+    @Autowired
+    private SPCTRepository sanPhamChiTietRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @MockBean
+    private HoaDonRepository hoaDonRepository;
+    private MockMvc mockMvc;
+
+    @Mock
+    private HDCTRepository hoaDonChiTietRepository;
+
+    @Mock
+    private Model model;
+
+    @InjectMocks
+    private banhangcontroller controller;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @Test
+    void updateItemInCart_ValidUpdate_Success() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, 3);
+        assertEquals(3, cartItem.getSoLuong());
+    }
+
+    @Test
+    void updateItemInCart_InvalidProductID() {
+        controller.updateItemInCart(9999, 3);
+        assertTrue(controller.list_CartItem.isEmpty());
+    }
+
+    @Test
+    void updateItemInCart_ZeroQuantity() {
+
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, 0);
+        assertTrue(controller.list_CartItem.isEmpty());
+    }
+
+    @Test
+    void updateItemInCart_NegativeQuantity() {
+
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, -1);
+        assertEquals(2, cartItem.getSoLuong());
+    }
+
+    @Test
+    void updateItemInCart_InsufficientStock() {/-strong/-heart:>:o:-((:-h CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, 100);
+        assertEquals(2, cartItem.getSoLuong());
+    }
+
+    @Test
+    void updateItemInCart_MultipleCartItems() {
+        CartItem cartItem1 = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        CartItem cartItem2 = new CartItem(2, "Product2", "Blue", "L", 3, 200.0);
+        controller.list_CartItem.add(cartItem1);
+        controller.list_CartItem.add(cartItem2);
+        controller.updateItemInCart(1, 5);
+        controller.updateItemInCart(2, 1);
+        assertEquals(5, cartItem1.getSoLuong());
+        assertEquals(1, cartItem2.getSoLuong());
+    }
+
+    @Test
+    void updateItemInCart_ProductPriceConsistency() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, 3);
+        assertEquals(100.0, cartItem.getDonGia());
+    }
+
+//    @Test
+//    void updateItemInCart_ProductQuantityReturnsToStock() {
+//        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+//        controller.list_CartItem.add(cartItem);
+//        sanPhamChiTietRepository sp = sanPhamChiTietRepository.getReferenceById(1);
+//        controller.updateItemInCart(1, 3);
+//        assertEquals(3, sp.getSoluong());
+//    }
+
+    @Test
+    void updateItemInCart_CartStateAfterUpdate() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, 4);
+        assertEquals(4, controller.getTongSoLuong());
+        assertEquals(400.0, controller.getTongTien());
+    }
+
+    @Test
+    void updateItemInCart_ProductPriceUnchangedAfterUpdate() {
+
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.updateItemInCart(1, 5);
+        assertEquals(100.0, cartItem.getDonGia());
+    }
+    @Test
+    void searchHoaDonById_ValidId_Success() {
+        // Mock dữ liệu đầu vào
+        int idHoaDon = 1;
+        hdchitiet hoaDonChiTiet = new hdchitiet();
+        hoaDonChiTiet.setId(1);
+        hoaDonChiTiet.setDongia(100.0);
+        hoaDonChiTiet.setSoluong(2);
+        List<hdchitiet> mockHoaDonChiTietList = List.of(hoaDonChiTiet);
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(hoaDonChiTietRepository).getHoaDonChiTietByHoaDonId(idHoaDon);
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_InvalidId_NoResult() {
+        // Mock dữ liệu/-strong/-heart:>:o:-((:-h int idHoaDon = 9999; // ID không tồn tại
+        List<hdchitiet> mockHoaDonChiTietList = Collections.emptyList();
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(hoaDonChiTietRepository).getHoaDonChiTietByHoaDonId(idHoaDon);
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+
+    @Test
+    void searchHoaDonById_NoIdProvided() {
+        // Test
+        String viewName = controller.searchHoaDonById(null, model);
+
+        // Verify
+        Mockito.verify(model).addAttribute("list_HoaDon", Collections.emptyList());
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_MultipleHoaDonChiTiet() {
+        // Mock dữ liệu
+        int idHoaDon = 1;
+        hdchitiet hoaDonChiTiet1 = new hdchitiet();
+        hdchitiet hoaDonChiTiet2 = new hdchitiet();
+        hoaDonChiTiet1.setId(1);
+        hoaDonChiTiet2.setId(2);
+        List<hdchitiet> mockHoaDonChiTietList = List.of(hoaDonChiTiet1, hoaDonChiTiet2);
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_ZeroPrice() {
+        // Mock dữ liệu
+        int idHoaDon = 1;
+        hdchitiet hoaDonChiTiet = new hdchitiet();
+        hoaDonChiTiet.setDongia(0.0); // Giá trị 0
+        List<hdchitiet> mockHoaDonChiTietList = List.of(hoaDonChiTiet);
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_DifferentProducts() {
+        // Mock dữ liệu
+        int idHoaDon = 2;
+        hdchitiet hoaDonChiTiet1 = new hdchitiet();
+        hoaDonChiTiet1.setId(1);
+        hoaDonChiTiet1.setDongia(200.0);
+        hoaDonChiTiet1.setSoluong(3);
+        hdchitiet hoaDonChiTiet2 = new hdchitiet();
+        hoaDonChiTiet2.setId(2);
+        hoaDonChiTiet2.setDongia(300.0);
+        hoaDonChiTiet2.setSoluong(1);
+        List<hdchitiet> mockHoaDonChiTietList = List.of(hoaDonChiTiet1, hoaDonChiTiet2);
+
+        // Mock repository/-strong/-heart:>:o:-((:-h Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_NoHoaDonChiTiet() {
+        // Mock dữ liệu
+        int idHoaDon = 5;
+        List<hdchitiet> mockHoaDonChiTietList = Collections.emptyList();
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_RepositoryException() {
+        // Mock dữ liệu
+        int idHoaDon = 1;
+
+        // Mock repository gây lỗi
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenThrow(new RuntimeException("Repository Error"));
+
+        // Test
+        assertThrows(RuntimeException.class, () -> controller.searchHoaDonById(idHoaDon, model));
+    }
+    @Test
+    void searchHoaDonById_ProductWithZeroQuantity() {
+        // Mock dữ liệu
+        int idHoaDon = 1;
+        hdchitiet hoaDonChiTiet1 = new hdchitiet();
+        hoaDonChiTiet1.setId(1);
+        hoaDonChiTiet1.setSoluong(0); // Sản phẩm có số lượng bằng 0
+        List<hdchitiet> mockHoaDonChiTietList = List.of(hoaDonChiTiet1);
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+    @Test
+    void searchHoaDonById_CalculateTotalPrice() {
+        // Mock dữ liệu
+        int idHoaDon = 2;
+        hdchitiet hoaDonChiTiet1 = new hdchitiet();
+        hoaDonChiTiet1.setDongia(100.0);
+        hoaDonChiTiet1.setSoluong(2);
+        hdchitiet hoaDonChiTiet2 = new hdchitiet();
+        hoaDonChiTiet2.setDongia(200.0);
+        hoaDonChiTiet2.setSoluong(1);
+        List<hdchitiet> mockHoaDonChiTietList = List.of(hoaDonChiTiet1, hoaDonChiTiet2);
+
+        // Mock repository
+        Mockito.when(hoaDonChiTietRepository.getHoaDonChiTietByHoaDonId(idHoaDon)).thenReturn(mockHoaDonChiTietList);
+
+        // Test
+        String viewName = controller.searchHoaDonById(idHoaDon, model);
+
+        // Verify
+        double expectedTotal = (100.0 * 2) + (200.0 * 1); // Expected total price
+        Mockito.verify(model).addAttribute("list_HoaDon", mockHoaDonChiTietList);/-strong/-heart:>:o:-((:-h Mockito.verify(model).addAttribute("totalPrice", expectedTotal);
+        assertEquals("banhang/hien-thi", viewName);
+    }
+
+    @Test
+    void searchSanPhamChiTiet_ValidId_Success() {
+        int idSanPham = 1;
+         spchitiet sanPhamChiTiet = new spchitiet();
+        sanPhamChiTiet.setId(1);
+        sanPhamChiTiet.setDongia(100.0);
+
+        Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenReturn(Optional.of(sanPhamChiTiet));
+
+        String viewName = controller.searchSanPhamChiTiet(idSanPham, model);
+
+        Mockito.verify(sanPhamChiTietRepository).findById(idSanPham);
+        Mockito.verify(model).addAttribute("sanPhamChiTiet", sanPhamChiTiet);
+        assertEquals("sanpham/chitiet", viewName);
+    }
+    @Test
+    void searchSanPhamChiTiet_InvalidId_NotFound() {
+        int idSanPham = 9999;
+        Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenReturn(Optional.empty());
+        String viewName = controller.searchSanPhamChiTiet(idSanPham, model);
+        Mockito.verify(sanPhamChiTietRepository).findById(idSanPham);
+        Mockito.verify(model).addAttribute("error", "Không tìm thấy sản phẩm chi tiết.");
+        assertEquals("sanpham/error", viewName);
+    }
+    @Test
+    void searchSanPhamChiTiet_NoIdProvided() {
+        String viewName = controller.searchSanPhamChiTiet(null, model);
+        Mockito.verify(model).addAttribute("error", "ID sản phẩm không hợp lệ.");
+        assertEquals("sanpham/error", viewName);
+    }
+    @Test
+    void searchSanPhamChiTiet_ZeroPrice() {
+        int idSanPham = 1;
+        spchitiet sanPhamChiTiet = new spchitiet();
+        sanPhamChiTiet.setId(1);
+        sanPhamChiTiet.setDongia(0.0);
+        Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenReturn(Optional.of(sanPhamChiTiet));
+        String viewName = controller.searchSanPhamChiTiet(idSanPham, model);
+        Mockito.verify(sanPhamChiTietRepository).findById(idSanPham);
+        Mockito.verify(model).addAttribute("sanPhamChiTiet", sanPhamChiTiet);
+        assertEquals("sanpham/chitiet", viewName);
+    }
+    @Test
+    void searchSanPhamChiTiet_NoDescription() {
+        int idSanPham = 1;
+        spchitiet sanPhamChiTiet = new spchitiet();
+        sanPhamChiTiet.setId(1);
+        sanPhamChiTiet.isTrangThai();
+        Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenReturn(Optional.of(sanPhamChiTiet));
+        String viewName = controller.searchSanPhamChiTiet(idSanPham, model);
+        Mockito.verify(sanPhamChiTietRepository).findById(idSanPham);
+        Mockito.verify(model).addAttribute("sanPhamChiTiet", sanPhamChiTiet);
+        assertEquals("sanpham/chitiet", viewName);
+    }
+    @Test
+    void searchSanPhamChiTiet_InvalidStatus() {
+        // Mock dữ liệu
+        int idSanPham = 1;
+        spchitiet sanPhamChiTiet = new spchitiet();
+        sanPhamChiTiet.setId(1);
+        sanPhamChiTiet.setTrangThai(false);/-strong/-heart:>:o:-((:-h Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenReturn(Optional.of(sanPhamChiTiet));
+        String viewName = controller.searchSanPhamChiTiet(idSanPham, model);
+        Mockito.verify(sanPhamChiTietRepository).findById(idSanPham);
+        Mockito.verify(model).addAttribute("sanPhamChiTiet", sanPhamChiTiet);
+        assertEquals("sanpham/chitiet", viewName);
+    }
+    @Test
+    void searchSanPhamChiTiet_RepositoryException() {
+        int idSanPham = 1;
+        Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenThrow(new RuntimeException("Error accessing database"));
+        assertThrows(RuntimeException.class, () -> controller.searchSanPhamChiTiet(idSanPham, model));
+    }
+    @Test
+    void searchSanPhamChiTiet_WithCategory() {
+        int idSanPham = 1;
+        spchitiet sanPhamChiTiet = new spchitiet();
+        sanPhamChiTiet.setId(1);
+        sanPhamChiTiet.setSanPham(sanPhamChiTiet.getSanPham());
+        Mockito.when(sanPhamChiTietRepository.findById(idSanPham)).thenReturn(Optional.of(sanPhamChiTiet));
+        String viewName = controller.searchSanPhamChiTiet(idSanPham, model);
+
+        Mockito.verify(sanPhamChiTietRepository).findById(idSanPham);
+        Mockito.verify(model).addAttribute("sanPhamChiTiet", sanPhamChiTiet);
+        assertEquals("sanpham/chitiet", viewName);
+    }
+
+
+    @Test
+    void addItemToCart_ValidProduct_AddToCartSuccessfully() {
+        // Arrange: Prepare a valid product with enough stock
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10); // Sufficient stock
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+
+        // Act: Add item to the cart
+        String result = controller.addItemToCart(1, 3, model);
+
+        // Assert: Verify that the product is added to the cart
+        assertEquals(1, controller.list_CartItem.size());
+        assertEquals(3, controller.list_CartItem.get(0).getSoLuong());
+        assertEquals("redirect:/banhang/add", result);
+    }
+
+    @Test
+    void addItemToCart_InsufficientStock_ErrorMessage() {
+        // Arrange: Prepare a product with insufficient stock
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(2); // Insufficient stock
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+
+        // Act: Try to add more items than available in stock
+        String result = controller.addItemToCart(1, 3, model);
+
+        // Assert: Verify that the error message is added to the model
+        Mockito.verify(model).addAttribute("error", "Số lượng không đủ.");
+        assertEquals("banhang/add", result);
+    }
+
+    @Test
+    void addItemToCart_ProductAlreadyInCart_UpdateQuantity() {
+        // Arrange: Prepare a product already in the cart
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10); // Sufficient stock/-strong/-heart:>:o:-((:-h CartItem existingCartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(existingCartItem);
+
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+
+        // Act: Add the same product with a new quantity
+        String result = controller.addItemToCart(1, 3, model);
+
+        // Assert: Verify the quantity is updated
+        assertEquals(1, controller.list_CartItem.size());
+        assertEquals(5, controller.list_CartItem.get(0).getSoLuong()); // 2 + 3 = 5
+        assertEquals("redirect:/banhang/add", result);
+    }
+
+    @Test
+    void addItemToCart_NonExistentProduct_Error() {
+        // Arrange: Prepare a non-existent product
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(999)).thenReturn(null);
+
+        // Act: Try to add a non-existent product to the cart
+        String result = controller.addItemToCart(999, 3, model);
+
+        // Assert: Verify that no product is added and no cart item is created
+        assertTrue(controller.list_CartItem.isEmpty());
+        assertEquals("banhang/add", result);
+    }
+
+    @Test
+    void addItemToCart_ValidProduct_StockUpdate() {
+        // Arrange: Prepare a valid product and simulate stock before adding
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10); // Sufficient stock
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+
+        // Act: Add item to the cart
+        controller.addItemToCart(1, 3, model);
+
+        // Assert: Verify the product stock is updated
+        assertEquals(7, product.getSoluong()); // 10 - 3 = 7
+    }
+
+    @Test
+    void addItemToCart_NegativeQuantity_NoChange() {
+        // Arrange: Prepare a valid product with enough stock
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10); // Sufficient stock
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+
+        // Act: Try to add negative quantity
+        String result = controller.addItemToCart(1, -3, model);
+
+        // Assert: Verify no item is added to the cart
+        assertTrue(controller.list_CartItem.isEmpty());
+        assertEquals("banhang/add", result);
+    }
+
+    @Test
+    void addItemToCart_ZeroQuantity_NoChange() {
+        // Arrange: Prepare a valid product with enough stock
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10); // Sufficient stock
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+
+        // Act: Try to add zero quantity
+        String result = controller.addItemToCart(1, 0, model);
+
+        // Assert: Verify no item is added to the cart
+        assertTrue(controller.list_CartItem.isEmpty());
+        assertEquals("banhang/add", result);
+    }
+
+    @Test
+    void addItemToCart_MultipleItems_ProductCountInCart() {/-strong/-heart:>:o:-((:-h // Arrange: Prepare multiple products
+        spchitiet product1 = new spchitiet();
+        product1.setId(1);
+        product1.setSoluong(10); // Sufficient stock
+        CartItem cartItem1 = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem1);
+
+        spchitiet product2 = new spchitiet();
+        product2.setId(2);
+        product2.setSoluong(5); // Sufficient stock
+        CartItem cartItem2 = new CartItem(2, "Product2", "Blue", "L", 3, 200.0);
+        controller.list_CartItem.add(cartItem2);
+
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product1);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(2)).thenReturn(product2);
+
+        // Act: Add a new product to the cart
+        controller.addItemToCart(1, 3, model);
+        controller.addItemToCart(2, 2, model);
+
+        // Assert: Verify the cart contains the correct number of products
+        assertEquals(4, controller.list_CartItem.size());
+        assertEquals(5, controller.list_CartItem.get(0).getSoLuong()); // Product 1 total quantity
+        assertEquals(5, controller.list_CartItem.get(1).getSoLuong()); // Product 2 total quantity
+    }
+
+    @Test
+    void addItemToCart_CartItemTotalAndPriceUpdated() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10); // Sufficient stock
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        controller.addItemToCart(1, 3, model);
+        assertEquals(3, controller.getTongSoLuong());
+        assertEquals(300.0, controller.getTongTien(), 0.01);
+    }
+    @Test
+    void addItemToCart_InsufficientStock_ErrorMg() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(2);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        String result = controller.addItemToCart(1, 3, model);
+        Mockito.verify(model).addAttribute("error", "Số lượng không đủ.");
+        assertEquals("banhang/add", result);
+    }
+    @Test
+    void addItemToCart_ProductAlreadyInCart_UpQuantit() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10);
+        CartItem existingCartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(existingCartItem);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        String result = controller.addItemToCart(1, 3, model);
+        assertEquals(1, controller.list_CartItem.size());
+        assertEquals(5, controller.list_CartItem.get(0).getSoLuong());
+        assertEquals("redirect:/banhang/add", result);
+    }
+    @Test
+    void addItemToCart_NonExistentProduct_Errorr() {
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(999)).thenReturn(null);
+        String result = controller.addItemToCart(999, 3, model);/-strong/-heart:>:o:-((:-h assertTrue(controller.list_CartItem.isEmpty());
+        assertEquals("banhang/add", result);
+    }
+    @Test
+    void addItemToCart_ValidProduct_StockUpt() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        controller.addItemToCart(1, 3, model);
+        assertEquals(7, product.getSoluong());
+    }
+    @Test
+    void addItemToCart_NegativeQuantity() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        String result = controller.addItemToCart(1, -3, model);
+        assertTrue(controller.list_CartItem.isEmpty());
+        assertEquals("banhang/add", result);
+    }
+    @Test
+    void addItemToCart_ZeroQuantity() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        String result = controller.addItemToCart(1, 0, model);
+        assertTrue(controller.list_CartItem.isEmpty());
+        assertEquals("banhang/add", result);
+    }
+    @Test
+    void addItemToCart_MultipleItems_ProductCountCart() {
+        spchitiet product1 = new spchitiet();
+        product1.setId(1);
+        product1.setSoluong(10);
+        CartItem cartItem1 = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem1);
+        spchitiet product2 = new spchitiet();
+        product2.setId(2);
+        product2.setSoluong(5);
+        CartItem cartItem2 = new CartItem(2, "Product2", "Blue", "L", 3, 200.0);
+        controller.list_CartItem.add(cartItem2);
+
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product1);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(2)).thenReturn(product2);
+        controller.addItemToCart(1, 3, model);
+        controller.addItemToCart(2, 2, model);
+        assertEquals(4, controller.list_CartItem.size());
+        assertEquals(5, controller.list_CartItem.get(0).getSoLuong());
+        assertEquals(5, controller.list_CartItem.get(1).getSoLuong());
+    }
+    @Test
+    void addItemToCart_CartItemTotalAndPriceUpdate() {
+        spchitiet product = new spchitiet();
+        product.setId(1);
+        product.setSoluong(10);
+        Mockito.when(sanPhamChiTietRepository.getReferenceById(1)).thenReturn(product);
+        controller.addItemToCart(1, 3, model);
+        assertEquals(3, controller.getTongSoLuong());
+        assertEquals(300.0, controller.getTongTien(), 0.01);
+    }
+    @Test
+    void removeItemFromCart_ValidItem_RemovalSuccess() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(1);/-strong/-heart:>:o:-((:-h assertTrue(controller.list_CartItem.isEmpty());
+    }
+    @Test
+    void removeItemFromCart_InvalidItemID_NoChange() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(9999);  // Invalid ID
+        assertEquals(1, controller.list_CartItem.size());
+    }
+    @Test
+    void removeItemFromCart_EmptyCart_NoChange() {
+        controller.removeItemFromCart(1);  // Cart is empty
+        assertTrue(controller.list_CartItem.isEmpty());
+    }
+    @Test
+    void removeItemFromCart_RemoveLastItem_CartBecomesEmpty() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(1);
+        assertTrue(controller.list_CartItem.isEmpty());
+    }
+    @Test
+    void removeItemFromCart_MultipleItems_RemoveOne() {
+        CartItem cartItem1 = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        CartItem cartItem2 = new CartItem(2, "Product2", "Blue", "L", 3, 200.0);
+        controller.list_CartItem.add(cartItem1);
+        controller.list_CartItem.add(cartItem2);
+        controller.removeItemFromCart(1);
+        assertEquals(1, controller.list_CartItem.size());
+        assertEquals(cartItem2, controller.list_CartItem.get(0));
+    }
+    @Test
+    void removeItemFromCart_ZeroQuantityItem_RemovalSuccess() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 0, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(1);
+        assertTrue(controller.list_CartItem.isEmpty());
+    }
+    @Test
+    void removeItemFromCart_ThenReaddItem() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(1);
+        controller.addItemToCart(1, 2, model);  // Re-add the item
+        assertEquals(1, controller.list_CartItem.size());
+        assertEquals(cartItem, controller.list_CartItem.get(0));
+    }
+    @Test
+    void removeItemFromCart_MultipleSameItems_RemoveOne() {
+        CartItem cartItem1 = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        CartItem cartItem2 = new CartItem(1, "Product1", "Red", "M", 3, 100.0);  // Same product ID
+        controller.list_CartItem.add(cartItem1);
+        controller.list_CartItem.add(cartItem2);
+        controller.removeItemFromCart(1);
+        assertEquals(1, controller.list_CartItem.size());
+        assertEquals(cartItem2, controller.list_CartItem.get(0));
+    }
+    @Test
+    void removeItemFromCart_NoInventoryChange() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", 2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(1);
+        assertEquals(0, controller.getTongSoLuong());
+        assertEquals(0, controller.getTongTien());
+    }
+    @Test/-strong/-heart:>:o:-((:-h void removeItemFromCart_ItemWithNegativeQuantity() {
+        CartItem cartItem = new CartItem(1, "Product1", "Red", "M", -2, 100.0);
+        controller.list_CartItem.add(cartItem);
+        controller.removeItemFromCart(1);
+        assertTrue(controller.list_CartItem.isEmpty());
+    }
+
+}​08:29/-strong/-heart:>:o:-((:-h Xem trước khi gửiThả Files vào đây để xem lại trước khi gửi
